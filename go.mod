@@ -1,4 +1,4 @@
-module misskeyBOT
+module misskeyRSSbot
 
 go 1.23.0
 

@@ -1,1 +1,6 @@
 .env
+misskeyRSSbot.exe
+misskeyRSSbot
+.DS_Store
+.vscode/
+.idea/

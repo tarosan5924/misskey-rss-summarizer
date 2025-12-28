@@ -1,25 +1,35 @@
-# Misskey RSS BOT
-A simple BOT tool to post the latest news obtained via RSS to Misskey🐈‍⬛💻
+# Misskey RSS Bot
 
-## Usage
+A bot that fetches RSS feeds and automatically posts them to Misskey.
 
-1.Create a `.env` file in the root directory and write the following as shown `.env.example`.
+## Setup
 
-2.`go build` or `go run main.go`
+Create a `.env` file based on `.env.example`.
 
+### Build and Run
 
-## Deploy
+```bash
+go build
+./misskeyRSSbot
+```
 
-You can use tmux or systemd to run the program in the background.
-If you want to use vercel or koyeb, please change code in `main.go`
+### Running as a systemd Service
 
-Currently,it loads `.env` as a file, but the services like Vercel or above are loads the environment directly, so please modify it accordingly.
+Example systemd service configuration:
 
+```ini
+[Unit]
+Description=Misskey RSS Bot
+After=network.target
 
-## Option
+[Service]
+Type=simple
+User=youruser
+WorkingDirectory=/path/to/misskeyRSSbot
+ExecStart=/path/to/misskeyRSSbot/misskeyRSSbot
+Restart=always
+RestartSec=10
 
-If you want to use multi URL, please modify as this 
-
-```dotenv
-RSS_URL:"https://example.com/rss/news/cat0.xml,https://example.com/rss/news/cat1.xml,https://example.com/rss/news/cat2.xml"
+[Install]
+WantedBy=multi-user.target
 ```
