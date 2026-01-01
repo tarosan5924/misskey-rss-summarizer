@@ -41,6 +41,7 @@ func TestNoteRepository_Post_Success(t *testing.T) {
 		authToken: "test-token",
 		client:    &http.Client{Timeout: 30 * time.Second},
 		rateLimiter: newRateLimiter(3, 10*time.Second),
+		localOnly: false,
 	}
 
 	note := entity.NewNote("Test note content", entity.VisibilityHome)
@@ -60,6 +61,9 @@ func TestNoteRepository_Post_Success(t *testing.T) {
 	if receivedPayload["visibility"] != "home" {
 		t.Errorf("expected visibility 'home', got '%v'", receivedPayload["visibility"])
 	}
+	if receivedPayload["localOnly"] != false {
+		t.Errorf("expected localOnly to be false, got '%v'", receivedPayload["localOnly"])
+	}
 }
 
 func TestNoteRepository_Post_ServerError(t *testing.T) {
@@ -74,6 +78,7 @@ func TestNoteRepository_Post_ServerError(t *testing.T) {
 		authToken:   "test-token",
 		client:      &http.Client{Timeout: 30 * time.Second},
 		rateLimiter: newRateLimiter(3, 10*time.Second),
+		localOnly:   false,
 	}
 
 	note := entity.NewNote("Test note", entity.VisibilityPublic)
@@ -97,6 +102,7 @@ func TestNoteRepository_Post_Unauthorized(t *testing.T) {
 		authToken:   "invalid-token",
 		client:      &http.Client{Timeout: 30 * time.Second},
 		rateLimiter: newRateLimiter(3, 10*time.Second),
+		localOnly:   false,
 	}
 
 	note := entity.NewNote("Test note", entity.VisibilityPublic)
@@ -120,6 +126,7 @@ func TestNoteRepository_Post_ContextCancellation(t *testing.T) {
 		authToken:   "test-token",
 		client:      &http.Client{Timeout: 30 * time.Second},
 		rateLimiter: newRateLimiter(3, 10*time.Second),
+		localOnly:   false,
 	}
 
 	note := entity.NewNote("Test note", entity.VisibilityPublic)
@@ -158,6 +165,7 @@ func TestNoteRepository_Post_DifferentVisibilities(t *testing.T) {
 				authToken:   "test-token",
 				client:      &http.Client{Timeout: 30 * time.Second},
 				rateLimiter: newRateLimiter(3, 10*time.Second),
+				localOnly:   false,
 			}
 
 			note := entity.NewNote("Test", vis)
@@ -171,5 +179,37 @@ func TestNoteRepository_Post_DifferentVisibilities(t *testing.T) {
 				t.Errorf("expected visibility '%s', got '%s'", vis, receivedVis)
 			}
 		})
+	}
+}
+
+func TestNoteRepository_Post_LocalOnlyTrue(t *testing.T) {
+	var receivedPayload map[string]interface{}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		json.Unmarshal(body, &receivedPayload)
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"createdNote": {"id": "note123"}}`))
+	}))
+	defer server.Close()
+
+	repo := &noteRepository{
+		host:        server.URL,
+		authToken:   "test-token",
+		client:      &http.Client{Timeout: 30 * time.Second},
+		rateLimiter: newRateLimiter(3, 10*time.Second),
+		localOnly:   true,
+	}
+
+	note := entity.NewNote("Test note", entity.VisibilityPublic)
+	ctx := context.Background()
+
+	err := repo.Post(ctx, note)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if receivedPayload["localOnly"] != true {
+		t.Errorf("expected localOnly to be true, got '%v'", receivedPayload["localOnly"])
 	}
 }

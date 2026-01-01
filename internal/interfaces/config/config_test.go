@@ -109,6 +109,31 @@ func TestLoadConfig_NumberedRSSURLs(t *testing.T) {
 	if len(cfg.RSSURL) != 2 {
 		t.Errorf("expected 2 RSS URLs, got %d", len(cfg.RSSURL))
 	}
+
+	if cfg.LocalOnly != false {
+		t.Errorf("expected LocalOnly to be false by default, got %v", cfg.LocalOnly)
+	}
+}
+
+func TestLoadConfig_LocalOnlyTrue(t *testing.T) {
+	os.Setenv("MISSKEY_HOST", "test.example.tld")
+	os.Setenv("AUTH_TOKEN", "test_token")
+	os.Setenv("RSS_URL_1", "https://example.tld/rss1")
+	os.Setenv("LOCAL_ONLY", "true")
+
+	defer os.Unsetenv("MISSKEY_HOST")
+	defer os.Unsetenv("AUTH_TOKEN")
+	defer os.Unsetenv("RSS_URL_1")
+	defer os.Unsetenv("LOCAL_ONLY")
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("LoadConfig failed: %v", err)
+	}
+
+	if cfg.LocalOnly != true {
+		t.Errorf("expected LocalOnly to be true, got %v", cfg.LocalOnly)
+	}
 }
 
 func TestLoadConfig_NoRSSURLs(t *testing.T) {
