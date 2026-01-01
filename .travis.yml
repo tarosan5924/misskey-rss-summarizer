@@ -2,24 +2,23 @@ language: go
 
 go:
   - "1.23"
-  - stable
 
 os:
   - linux
-  - osx
 
-env:
-  - GO111MODULE=on
+dist: jammy
 
-before_install:
-  - go mod download
+cache:
+  directories:
+    - $HOME/.cache/go-build
+    - $HOME/gopath/pkg/mod
 
 script:
   - go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
-  - go build -v
+  - go build -v .
 
 after_success:
-  - bash <(curl -s https://codecov.io/bash)
+  - if [ -f coverage.txt ]; then bash <(curl -s https://codecov.io/bash) || true; fi
 
 notifications:
   email:
