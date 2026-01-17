@@ -14,15 +14,17 @@ Create a `.env` file based on `.env.example`.
 
 ### LLM Summarization (Optional)
 
-To enable AI-powered article summarization, configure the following environment variables:
+To enable AI-powered article summarization, add the following to your `.env` file:
 
 ```bash
 LLM_PROVIDER=gemini
 LLM_API_KEY=your_api_key_here
-LLM_MODEL=gemini-2.0-flash-exp
+LLM_MODEL=<check_provider_documentation_for_available_models>
 ```
 
 The bot will automatically fetch article content from URLs and generate summaries using the specified LLM provider.
+
+**Important:** Check the LLM provider's documentation for currently available models, as model names may change over time.
 
 **Note:** LLM summarization is opt-in. If `LLM_PROVIDER` is not set or empty, the bot will post articles without summaries.
 
