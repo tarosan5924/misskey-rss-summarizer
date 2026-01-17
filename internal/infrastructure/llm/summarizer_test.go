@@ -127,7 +127,7 @@ func TestConfig_Defaults(t *testing.T) {
 		t.Errorf("expected default timeout %v, got %v", expectedTimeout, gs.timeout)
 	}
 
-	if gs.systemPrompt != DefaultSystemPrompt {
+	if gs.systemPrompt != DefaultSystemInstruction {
 		t.Error("expected default system prompt")
 	}
 }

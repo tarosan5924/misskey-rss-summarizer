@@ -35,7 +35,7 @@ func newGeminiSummarizer(ctx context.Context, cfg Config) (repository.Summarizer
 
 	systemInstruction := cfg.SystemInstruction
 	if systemInstruction == "" {
-		systemInstruction = DefaultSystemPrompt
+		systemInstruction = DefaultSystemInstruction
 	}
 
 	timeout := cfg.Timeout

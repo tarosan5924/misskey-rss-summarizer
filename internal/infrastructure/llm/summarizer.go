@@ -17,7 +17,7 @@ type Config struct {
 	Timeout           time.Duration
 }
 
-const DefaultSystemPrompt = `あなたは記事要約の専門家です。
+const DefaultSystemInstruction = `あなたは記事要約の専門家です。
 以下の記事を簡潔に要約してください。
 - 3〜5文程度で要点をまとめる
 - 重要な情報を優先する
