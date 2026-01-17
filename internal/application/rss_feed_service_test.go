@@ -83,6 +83,10 @@ func (m *mockSummarizerRepository) IsEnabled() bool {
 	return m.enabled
 }
 
+func (m *mockSummarizerRepository) Close() error {
+	return nil
+}
+
 func TestRSSFeedService_ProcessFeed_NewEntries(t *testing.T) {
 	ctx := context.Background()
 

@@ -19,7 +19,7 @@ type geminiSummarizer struct {
 	timeout      time.Duration
 }
 
-func newGeminiSummarizer(cfg Config) (repository.SummarizerRepository, error) {
+func newGeminiSummarizer(ctx context.Context, cfg Config) (repository.SummarizerRepository, error) {
 	if cfg.APIKey == "" {
 		return nil, fmt.Errorf("Gemini API key is required")
 	}
@@ -45,8 +45,7 @@ func newGeminiSummarizer(cfg Config) (repository.SummarizerRepository, error) {
 		timeout = 30 * time.Second
 	}
 
-	// Gemini クライアントを作成
-	ctx := context.Background()
+	// Gemini クライアントを作成（親コンテキストを使用）
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{
 		APIKey: cfg.APIKey,
 		// Backend はデフォルトで BackendGeminiAPI が使用される
