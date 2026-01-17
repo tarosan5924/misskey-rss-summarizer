@@ -26,17 +26,12 @@ type Config struct {
 	LocalOnly bool `envconfig:"LOCAL_ONLY" default:"false"`
 
 	// LLM要約機能の設定
-	LLMProvider       string `envconfig:"LLM_PROVIDER" default:""`
-	LLMAPIKey         string `envconfig:"LLM_API_KEY"`
-	LLMModel          string `envconfig:"LLM_MODEL"`
-	LLMMaxTokens      int    `envconfig:"LLM_MAX_TOKENS" default:"500"`
-	LLMMaxInputLength int    `envconfig:"LLM_MAX_INPUT_LENGTH" default:"4000"`
-	LLMTimeout        int    `envconfig:"LLM_TIMEOUT" default:"30"`
-	LLMPrompt         string `envconfig:"LLM_PROMPT"`
-
-	// コンテンツ取得設定
-	ScrapeContent bool `envconfig:"SCRAPE_CONTENT" default:"true"`
-	ScrapeTimeout int  `envconfig:"SCRAPE_TIMEOUT" default:"15"`
+	LLMProvider  string `envconfig:"LLM_PROVIDER" default:""`
+	LLMAPIKey    string `envconfig:"LLM_API_KEY"`
+	LLMModel     string `envconfig:"LLM_MODEL"`
+	LLMMaxTokens int    `envconfig:"LLM_MAX_TOKENS" default:"500"`
+	LLMTimeout   int    `envconfig:"LLM_TIMEOUT" default:"30"`
+	LLMPrompt    string `envconfig:"LLM_PROMPT"`
 }
 
 func LoadConfig() (*Config, error) {
@@ -102,17 +97,11 @@ func (c *Config) GetRefillInterval() time.Duration {
 // GetLLMConfig はLLM設定を返します
 func (c *Config) GetLLMConfig() llm.Config {
 	return llm.Config{
-		Provider:       c.LLMProvider,
-		APIKey:         c.LLMAPIKey,
-		Model:          c.LLMModel,
-		MaxTokens:      c.LLMMaxTokens,
-		MaxInputLength: c.LLMMaxInputLength,
-		Timeout:        time.Duration(c.LLMTimeout) * time.Second,
-		Prompt:         c.LLMPrompt,
+		Provider:  c.LLMProvider,
+		APIKey:    c.LLMAPIKey,
+		Model:     c.LLMModel,
+		MaxTokens: c.LLMMaxTokens,
+		Timeout:   time.Duration(c.LLMTimeout) * time.Second,
+		Prompt:    c.LLMPrompt,
 	}
-}
-
-// GetScrapeTimeout はスクレイピングのタイムアウトを返します
-func (c *Config) GetScrapeTimeout() time.Duration {
-	return time.Duration(c.ScrapeTimeout) * time.Second
 }

@@ -40,11 +40,6 @@ func TestGeminiSummarizer_NewGeminiSummarizer_DefaultValues(t *testing.T) {
 		maxTokens = 500
 	}
 
-	maxInputLength := cfg.MaxInputLength
-	if maxInputLength == 0 {
-		maxInputLength = 4000
-	}
-
 	timeout := cfg.Timeout
 	if timeout == 0 {
 		timeout = 30 * time.Second
@@ -61,10 +56,6 @@ func TestGeminiSummarizer_NewGeminiSummarizer_DefaultValues(t *testing.T) {
 
 	if maxTokens != 500 {
 		t.Errorf("expected default maxTokens 500, got %d", maxTokens)
-	}
-
-	if maxInputLength != 4000 {
-		t.Errorf("expected default maxInputLength 4000, got %d", maxInputLength)
 	}
 
 	if timeout != 30*time.Second {
@@ -115,38 +106,15 @@ func TestGeminiSummarizer_IsEnabled(t *testing.T) {
 	}
 }
 
-func TestGeminiSummarizer_InputTruncation(t *testing.T) {
-	// 入力切り詰めロジックのテスト
-	maxInputLength := 100
-	longContent := strings.Repeat("a", 200)
-
-	var truncated string
-	if len(longContent) > maxInputLength {
-		truncated = longContent[:maxInputLength] + "..."
-	} else {
-		truncated = longContent
-	}
-
-	expectedLength := maxInputLength + 3 // "..." を含む
-	if len(truncated) != expectedLength {
-		t.Errorf("expected truncated length %d, got %d", expectedLength, len(truncated))
-	}
-
-	if !strings.HasSuffix(truncated, "...") {
-		t.Error("expected truncated string to end with '...'")
-	}
-}
-
 func TestGeminiSummarizer_CustomConfig(t *testing.T) {
 	customPrompt := "カスタムプロンプト"
 	cfg := Config{
-		Provider:       "gemini",
-		APIKey:         "test-key",
-		Model:          "gemini-1.5-pro",
-		MaxTokens:      1000,
-		MaxInputLength: 8000,
-		Timeout:        60 * time.Second,
-		Prompt:         customPrompt,
+		Provider:  "gemini",
+		APIKey:    "test-key",
+		Model:     "gemini-1.5-pro",
+		MaxTokens: 1000,
+		Timeout:   60 * time.Second,
+		Prompt:    customPrompt,
 	}
 
 	// 設定値のバリデーション（実際のクライアント作成はスキップ）
@@ -156,10 +124,6 @@ func TestGeminiSummarizer_CustomConfig(t *testing.T) {
 
 	if cfg.MaxTokens != 1000 {
 		t.Errorf("expected maxTokens 1000, got %d", cfg.MaxTokens)
-	}
-
-	if cfg.MaxInputLength != 8000 {
-		t.Errorf("expected maxInputLength 8000, got %d", cfg.MaxInputLength)
 	}
 
 	if cfg.Timeout != 60*time.Second {
