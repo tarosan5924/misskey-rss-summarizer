@@ -1,4 +1,4 @@
-# Misskey RSS Summarizer
+# Misskey RSS Bot with AI Summarization
 
 A bot that fetches RSS feeds and automatically posts them to Misskey.
 
