@@ -104,8 +104,8 @@ func TestConfig_Defaults(t *testing.T) {
 		t.Errorf("expected default model 'gemini-1.5-flash', got %s", gs.model)
 	}
 
-	if gs.maxTokens != 500 {
-		t.Errorf("expected default maxTokens 500, got %d", gs.maxTokens)
+	if gs.maxTokens != nil {
+		t.Errorf("expected default maxTokens to be nil (no limit), got %d", *gs.maxTokens)
 	}
 
 	expectedTimeout := 30 * time.Second
@@ -140,8 +140,10 @@ func TestConfig_CustomValues(t *testing.T) {
 		t.Errorf("expected model 'gemini-1.5-pro', got %s", gs.model)
 	}
 
-	if gs.maxTokens != 1000 {
-		t.Errorf("expected maxTokens 1000, got %d", gs.maxTokens)
+	if gs.maxTokens == nil {
+		t.Error("expected maxTokens to be set, got nil")
+	} else if *gs.maxTokens != 1000 {
+		t.Errorf("expected maxTokens 1000, got %d", *gs.maxTokens)
 	}
 
 	if gs.timeout != 60*time.Second {

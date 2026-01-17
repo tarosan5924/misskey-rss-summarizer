@@ -29,7 +29,7 @@ type Config struct {
 	LLMProvider  string `envconfig:"LLM_PROVIDER" default:""`
 	LLMAPIKey    string `envconfig:"LLM_API_KEY"`
 	LLMModel     string `envconfig:"LLM_MODEL"`
-	LLMMaxTokens int    `envconfig:"LLM_MAX_TOKENS" default:"500"`
+	LLMMaxTokens int    `envconfig:"LLM_MAX_TOKENS" default:"0"`
 	LLMTimeout   int    `envconfig:"LLM_TIMEOUT" default:"30"`
 	LLMPrompt    string `envconfig:"LLM_PROMPT"`
 }

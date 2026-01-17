@@ -35,9 +35,11 @@ func TestGeminiSummarizer_NewGeminiSummarizer_DefaultValues(t *testing.T) {
 		model = "gemini-1.5-flash"
 	}
 
-	maxTokens := cfg.MaxTokens
-	if maxTokens == 0 {
-		maxTokens = 500
+	// maxTokensが0の場合はnil（指定なし）
+	var maxTokens *int32
+	if cfg.MaxTokens > 0 {
+		tokens := int32(cfg.MaxTokens)
+		maxTokens = &tokens
 	}
 
 	timeout := cfg.Timeout
@@ -54,8 +56,8 @@ func TestGeminiSummarizer_NewGeminiSummarizer_DefaultValues(t *testing.T) {
 		t.Errorf("expected default model 'gemini-1.5-flash', got %s", model)
 	}
 
-	if maxTokens != 500 {
-		t.Errorf("expected default maxTokens 500, got %d", maxTokens)
+	if maxTokens != nil {
+		t.Errorf("expected default maxTokens to be nil (no limit), got %d", *maxTokens)
 	}
 
 	if timeout != 30*time.Second {
@@ -124,6 +126,19 @@ func TestGeminiSummarizer_CustomConfig(t *testing.T) {
 
 	if cfg.MaxTokens != 1000 {
 		t.Errorf("expected maxTokens 1000, got %d", cfg.MaxTokens)
+	}
+
+	// maxTokensが設定されていることを確認
+	var maxTokens *int32
+	if cfg.MaxTokens > 0 {
+		tokens := int32(cfg.MaxTokens)
+		maxTokens = &tokens
+	}
+
+	if maxTokens == nil {
+		t.Error("expected maxTokens to be set, got nil")
+	} else if *maxTokens != 1000 {
+		t.Errorf("expected maxTokens pointer to 1000, got %d", *maxTokens)
 	}
 
 	if cfg.Timeout != 60*time.Second {
