@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"misskey-rss-summarizer/internal/application"
+	"misskey-rss-summarizer/internal/infrastructure/llm"
 	"misskey-rss-summarizer/internal/infrastructure/misskey"
 	"misskey-rss-summarizer/internal/infrastructure/rss"
 	"misskey-rss-summarizer/internal/infrastructure/storage"
@@ -34,7 +35,20 @@ func main() {
 	})
 	cacheRepo := storage.NewMemoryCacheRepository()
 
-	service := application.NewRSSFeedService(feedRepo, noteRepo, cacheRepo)
+	// LLM要約機能のセットアップ
+	summarizerRepo, err := llm.NewSummarizerRepository(cfg.GetLLMConfig())
+	if err != nil {
+		log.Printf("Warning: LLM summarizer initialization failed: %v", err)
+		log.Println("Continuing without summarization feature...")
+		summarizerRepo, _ = llm.NewSummarizerRepository(llm.Config{Provider: "noop"})
+	}
+
+	service := application.NewRSSFeedService(
+		feedRepo,
+		noteRepo,
+		cacheRepo,
+		summarizerRepo,
+	)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

@@ -12,20 +12,23 @@ import (
 )
 
 type RSSFeedService struct {
-	feedRepo  repository.FeedRepository
-	noteRepo  repository.NoteRepository
-	cacheRepo repository.CacheRepository
+	feedRepo       repository.FeedRepository
+	noteRepo       repository.NoteRepository
+	cacheRepo      repository.CacheRepository
+	summarizerRepo repository.SummarizerRepository
 }
 
 func NewRSSFeedService(
 	feedRepo repository.FeedRepository,
 	noteRepo repository.NoteRepository,
 	cacheRepo repository.CacheRepository,
+	summarizerRepo repository.SummarizerRepository,
 ) *RSSFeedService {
 	return &RSSFeedService{
-		feedRepo:  feedRepo,
-		noteRepo:  noteRepo,
-		cacheRepo: cacheRepo,
+		feedRepo:       feedRepo,
+		noteRepo:       noteRepo,
+		cacheRepo:      cacheRepo,
+		summarizerRepo: summarizerRepo,
 	}
 }
 
@@ -80,7 +83,19 @@ func (s *RSSFeedService) ProcessFeed(ctx context.Context, rssURL string) error {
 
 	var latestTime time.Time
 	for _, entry := range newEntries {
-		note := entity.NewNoteFromFeed(entry, entity.VisibilityHome)
+		var summary string
+
+		// 要約機能が有効な場合、記事URLを渡してLLMに要約してもらう
+		if s.summarizerRepo != nil && s.summarizerRepo.IsEnabled() {
+			var err error
+			summary, err = s.summarizerRepo.Summarize(ctx, entry.Link, entry.Title)
+			if err != nil {
+				log.Printf("Failed to summarize [%s]: %v", entry.Title, err)
+				// 要約失敗時は要約なしで続行
+			}
+		}
+
+		note := entity.NewNoteFromFeedWithSummary(entry, summary, entity.VisibilityHome)
 		if err := s.noteRepo.Post(ctx, note); err != nil {
 			log.Printf("Failed to post to Misskey [%s]: %v", entry.Title, err)
 			continue
