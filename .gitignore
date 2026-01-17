@@ -1,6 +1,6 @@
 .env
-misskeyRSSbot.exe
-misskeyRSSbot
+misskey-rss-summarizer.exe
+misskey-rss-summarizer
 .DS_Store
 .vscode/
 .idea/
