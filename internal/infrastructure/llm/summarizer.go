@@ -1,6 +1,7 @@
 package llm
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -25,10 +26,10 @@ const DefaultSystemPrompt = `あなたは記事要約の専門家です。
 - 日本語で出力する`
 
 // NewSummarizerRepository はConfigに基づいてSummarizerRepositoryを生成します
-func NewSummarizerRepository(cfg Config) (repository.SummarizerRepository, error) {
+func NewSummarizerRepository(ctx context.Context, cfg Config) (repository.SummarizerRepository, error) {
 	switch cfg.Provider {
 	case "gemini":
-		return newGeminiSummarizer(cfg)
+		return newGeminiSummarizer(ctx, cfg)
 	case "noop", "":
 		return newNoopSummarizer(), nil
 	default:

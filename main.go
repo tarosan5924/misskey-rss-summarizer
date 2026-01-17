@@ -25,6 +25,9 @@ func main() {
 		log.Fatal("Failed to load configuration:", err)
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	feedRepo := rss.NewFeedRepository()
 	noteRepo := misskey.NewNoteRepository(misskey.Config{
 		Host:           cfg.MisskeyHost,
@@ -36,11 +39,11 @@ func main() {
 	cacheRepo := storage.NewMemoryCacheRepository()
 
 	// LLM要約機能のセットアップ
-	summarizerRepo, err := llm.NewSummarizerRepository(cfg.GetLLMConfig())
+	summarizerRepo, err := llm.NewSummarizerRepository(ctx, cfg.GetLLMConfig())
 	if err != nil {
 		log.Printf("Warning: LLM summarizer initialization failed: %v", err)
 		log.Println("Continuing without summarization feature...")
-		summarizerRepo, _ = llm.NewSummarizerRepository(llm.Config{Provider: "noop"})
+		summarizerRepo, _ = llm.NewSummarizerRepository(ctx, llm.Config{Provider: "noop"})
 	}
 
 	service := application.NewRSSFeedService(
@@ -49,9 +52,6 @@ func main() {
 		cacheRepo,
 		summarizerRepo,
 	)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)

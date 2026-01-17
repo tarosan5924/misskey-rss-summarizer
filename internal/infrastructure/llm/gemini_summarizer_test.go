@@ -1,6 +1,7 @@
 package llm
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -12,7 +13,7 @@ func TestGeminiSummarizer_NewGeminiSummarizer_NoAPIKey(t *testing.T) {
 		APIKey:   "",
 	}
 
-	_, err := newGeminiSummarizer(cfg)
+	_, err := newGeminiSummarizer(context.TODO(), cfg)
 	if err == nil {
 		t.Error("expected error when API key is empty, got nil")
 	}
@@ -29,7 +30,7 @@ func TestGeminiSummarizer_NewGeminiSummarizer_NoModel(t *testing.T) {
 		Model:    "",
 	}
 
-	_, err := newGeminiSummarizer(cfg)
+	_, err := newGeminiSummarizer(context.TODO(), cfg)
 	if err == nil {
 		t.Error("expected error when model is empty, got nil")
 	}
@@ -67,7 +68,7 @@ func TestGeminiSummarizer_ConfigValidation(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := newGeminiSummarizer(tc.config)
+			_, err := newGeminiSummarizer(context.TODO(), tc.config)
 			if tc.expectError && err == nil {
 				t.Error("expected error but got nil")
 			}

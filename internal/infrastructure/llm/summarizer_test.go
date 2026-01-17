@@ -1,6 +1,7 @@
 package llm
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -13,7 +14,7 @@ func TestNewSummarizerRepository_Gemini(t *testing.T) {
 		Model:    "gemini-2.0-flash-exp",
 	}
 
-	repo, err := NewSummarizerRepository(cfg)
+	repo, err := NewSummarizerRepository(context.TODO(), cfg)
 	if err != nil {
 		t.Fatalf("failed to create gemini summarizer: %v", err)
 	}
@@ -42,7 +43,7 @@ func TestNewSummarizerRepository_Noop(t *testing.T) {
 				Provider: tc.provider,
 			}
 
-			repo, err := NewSummarizerRepository(cfg)
+			repo, err := NewSummarizerRepository(context.TODO(), cfg)
 			if err != nil {
 				t.Fatalf("failed to create noop summarizer: %v", err)
 			}
@@ -63,7 +64,7 @@ func TestNewSummarizerRepository_UnknownProvider(t *testing.T) {
 		Provider: "unknown-provider",
 	}
 
-	_, err := NewSummarizerRepository(cfg)
+	_, err := NewSummarizerRepository(context.TODO(), cfg)
 	if err == nil {
 		t.Error("expected error for unknown provider, got nil")
 	}
@@ -80,7 +81,7 @@ func TestNewSummarizerRepository_GeminiNoAPIKey(t *testing.T) {
 		Model:    "gemini-2.0-flash-exp",
 	}
 
-	_, err := NewSummarizerRepository(cfg)
+	_, err := NewSummarizerRepository(context.TODO(), cfg)
 	if err == nil {
 		t.Error("expected error when gemini API key is empty, got nil")
 	}
@@ -93,7 +94,7 @@ func TestNewSummarizerRepository_GeminiNoModel(t *testing.T) {
 		Model:    "",
 	}
 
-	_, err := NewSummarizerRepository(cfg)
+	_, err := NewSummarizerRepository(context.TODO(), cfg)
 	if err == nil {
 		t.Error("expected error when gemini model is empty, got nil")
 	}
@@ -107,7 +108,7 @@ func TestConfig_Defaults(t *testing.T) {
 	}
 
 	// Gemini summarizerを作成してデフォルト値を確認
-	summarizer, err := newGeminiSummarizer(cfg)
+	summarizer, err := newGeminiSummarizer(context.TODO(), cfg)
 	if err != nil {
 		t.Fatalf("failed to create summarizer: %v", err)
 	}
@@ -144,7 +145,7 @@ func TestConfig_CustomValues(t *testing.T) {
 		SystemInstruction: customInstruction,
 	}
 
-	summarizer, err := newGeminiSummarizer(cfg)
+	summarizer, err := newGeminiSummarizer(context.TODO(), cfg)
 	if err != nil {
 		t.Fatalf("failed to create summarizer: %v", err)
 	}
