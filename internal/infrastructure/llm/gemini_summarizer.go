@@ -36,9 +36,9 @@ func newGeminiSummarizer(cfg Config) (repository.SummarizerRepository, error) {
 		maxTokens = &tokens
 	}
 
-	prompt := cfg.Prompt
-	if prompt == "" {
-		prompt = DefaultSystemPrompt
+	systemInstruction := cfg.SystemInstruction
+	if systemInstruction == "" {
+		systemInstruction = DefaultSystemPrompt
 	}
 
 	timeout := cfg.Timeout
@@ -60,7 +60,7 @@ func newGeminiSummarizer(cfg Config) (repository.SummarizerRepository, error) {
 		client:       client,
 		model:        model,
 		maxTokens:    maxTokens,
-		systemPrompt: prompt,
+		systemPrompt: systemInstruction,
 		timeout:      timeout,
 	}, nil
 }

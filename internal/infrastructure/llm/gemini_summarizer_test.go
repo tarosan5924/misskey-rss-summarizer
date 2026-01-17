@@ -47,9 +47,9 @@ func TestGeminiSummarizer_NewGeminiSummarizer_DefaultValues(t *testing.T) {
 		timeout = 30 * time.Second
 	}
 
-	prompt := cfg.Prompt
-	if prompt == "" {
-		prompt = DefaultSystemPrompt
+	systemInstruction := cfg.SystemInstruction
+	if systemInstruction == "" {
+		systemInstruction = DefaultSystemPrompt
 	}
 
 	if model != "gemini-1.5-flash" {
@@ -64,8 +64,8 @@ func TestGeminiSummarizer_NewGeminiSummarizer_DefaultValues(t *testing.T) {
 		t.Errorf("expected default timeout 30s, got %v", timeout)
 	}
 
-	if prompt != DefaultSystemPrompt {
-		t.Error("expected default system prompt")
+	if systemInstruction != DefaultSystemPrompt {
+		t.Error("expected default system instruction")
 	}
 }
 
@@ -109,14 +109,14 @@ func TestGeminiSummarizer_IsEnabled(t *testing.T) {
 }
 
 func TestGeminiSummarizer_CustomConfig(t *testing.T) {
-	customPrompt := "カスタムプロンプト"
+	customInstruction := "カスタムシステムインストラクション"
 	cfg := Config{
-		Provider:  "gemini",
-		APIKey:    "test-key",
-		Model:     "gemini-1.5-pro",
-		MaxTokens: 1000,
-		Timeout:   60 * time.Second,
-		Prompt:    customPrompt,
+		Provider:          "gemini",
+		APIKey:            "test-key",
+		Model:             "gemini-1.5-pro",
+		MaxTokens:         1000,
+		Timeout:           60 * time.Second,
+		SystemInstruction: customInstruction,
 	}
 
 	// 設定値のバリデーション（実際のクライアント作成はスキップ）
@@ -145,7 +145,7 @@ func TestGeminiSummarizer_CustomConfig(t *testing.T) {
 		t.Errorf("expected timeout 60s, got %v", cfg.Timeout)
 	}
 
-	if cfg.Prompt != customPrompt {
-		t.Errorf("expected custom prompt '%s', got '%s'", customPrompt, cfg.Prompt)
+	if cfg.SystemInstruction != customInstruction {
+		t.Errorf("expected custom instruction '%s', got '%s'", customInstruction, cfg.SystemInstruction)
 	}
 }

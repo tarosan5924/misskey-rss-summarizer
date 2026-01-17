@@ -9,12 +9,12 @@ import (
 
 // Config はLLM要約機能の設定
 type Config struct {
-	Provider  string        // "gemini" or "noop" (empty defaults to "noop")
-	APIKey    string        // LLM APIキー
-	Model     string        // モデル名
-	MaxTokens int           // 最大出力トークン数
-	Prompt    string        // カスタムプロンプト
-	Timeout   time.Duration // APIタイムアウト
+	Provider          string        // "gemini" or "noop" (empty defaults to "noop")
+	APIKey            string        // LLM APIキー
+	Model             string        // モデル名
+	MaxTokens         int           // 最大出力トークン数
+	SystemInstruction string        // カスタムシステムインストラクション
+	Timeout           time.Duration // APIタイムアウト
 }
 
 // DefaultSystemPrompt はデフォルトの要約プロンプト

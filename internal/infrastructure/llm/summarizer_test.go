@@ -119,14 +119,14 @@ func TestConfig_Defaults(t *testing.T) {
 }
 
 func TestConfig_CustomValues(t *testing.T) {
-	customPrompt := "カスタムプロンプト"
+	customInstruction := "カスタムシステムインストラクション"
 	cfg := Config{
-		Provider:  "gemini",
-		APIKey:    "test-key",
-		Model:     "gemini-1.5-pro",
-		MaxTokens: 1000,
-		Timeout:   60 * time.Second,
-		Prompt:    customPrompt,
+		Provider:          "gemini",
+		APIKey:            "test-key",
+		Model:             "gemini-1.5-pro",
+		MaxTokens:         1000,
+		Timeout:           60 * time.Second,
+		SystemInstruction: customInstruction,
 	}
 
 	summarizer, err := newGeminiSummarizer(cfg)
@@ -150,7 +150,7 @@ func TestConfig_CustomValues(t *testing.T) {
 		t.Errorf("expected timeout 60s, got %v", gs.timeout)
 	}
 
-	if gs.systemPrompt != customPrompt {
-		t.Errorf("expected custom prompt '%s', got '%s'", customPrompt, gs.systemPrompt)
+	if gs.systemPrompt != customInstruction {
+		t.Errorf("expected custom instruction '%s', got '%s'", customInstruction, gs.systemPrompt)
 	}
 }
