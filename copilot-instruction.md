@@ -155,11 +155,19 @@ func (rl *rateLimiter) Wait(ctx context.Context) error {
 		waitTime := rl.refillRate - (now.Sub(rl.lastRefill) % rl.refillRate)
 		rl.mu.Unlock()
 		
+		timer := time.NewTimer(waitTime)
+		defer timer.Stop()
+		
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-timer.C:
-			// 処理継続
+			rl.mu.Lock()
+			rl.permits = 1
+			rl.lastRefill = time.Now()
+			rl.permits--
+			rl.mu.Unlock()
+			return nil
 		}
 	}
 	
