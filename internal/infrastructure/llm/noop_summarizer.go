@@ -13,7 +13,7 @@ func newNoopSummarizer() repository.SummarizerRepository {
 	return &noopSummarizer{}
 }
 
-func (s *noopSummarizer) Summarize(ctx context.Context, content, title string) (string, error) {
+func (s *noopSummarizer) Summarize(ctx context.Context, url, title string) (string, error) {
 	return "", nil
 }
 

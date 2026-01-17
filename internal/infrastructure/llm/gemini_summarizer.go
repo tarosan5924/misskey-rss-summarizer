@@ -12,12 +12,11 @@ import (
 
 // geminiSummarizer はGoogle Gemini APIを使用した要約実装
 type geminiSummarizer struct {
-	client         *genai.Client
-	model          string
-	maxTokens      int32
-	systemPrompt   string
-	maxInputLength int
-	timeout        time.Duration
+	client       *genai.Client
+	model        string
+	maxTokens    int32
+	systemPrompt string
+	timeout      time.Duration
 }
 
 func newGeminiSummarizer(cfg Config) (repository.SummarizerRepository, error) {
@@ -40,11 +39,6 @@ func newGeminiSummarizer(cfg Config) (repository.SummarizerRepository, error) {
 		prompt = DefaultSystemPrompt
 	}
 
-	maxInputLength := cfg.MaxInputLength
-	if maxInputLength == 0 {
-		maxInputLength = 4000
-	}
-
 	timeout := cfg.Timeout
 	if timeout == 0 {
 		timeout = 30 * time.Second
@@ -61,26 +55,21 @@ func newGeminiSummarizer(cfg Config) (repository.SummarizerRepository, error) {
 	}
 
 	return &geminiSummarizer{
-		client:         client,
-		model:          model,
-		maxTokens:      int32(maxTokens),
-		systemPrompt:   prompt,
-		maxInputLength: maxInputLength,
-		timeout:        timeout,
+		client:       client,
+		model:        model,
+		maxTokens:    int32(maxTokens),
+		systemPrompt: prompt,
+		timeout:      timeout,
 	}, nil
 }
 
-func (s *geminiSummarizer) Summarize(ctx context.Context, content, title string) (string, error) {
+func (s *geminiSummarizer) Summarize(ctx context.Context, url, title string) (string, error) {
 	// タイムアウト付きコンテキストを作成
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	// 入力テキストの長さを制限
-	if len(content) > s.maxInputLength {
-		content = content[:s.maxInputLength] + "..."
-	}
-
-	userPrompt := fmt.Sprintf("記事タイトル: %s\n\n記事内容:\n%s", title, content)
+	// URLと記事タイトルをプロンプトに含める
+	userPrompt := fmt.Sprintf("以下のURLの記事を要約してください。\n\n記事タイトル: %s\n記事URL: %s", title, url)
 
 	// システムインストラクションとユーザープロンプトを設定
 	systemInstruction := genai.NewContentFromText(s.systemPrompt, genai.RoleUser)

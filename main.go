@@ -13,7 +13,6 @@ import (
 	"misskey-rss-summarizer/internal/infrastructure/llm"
 	"misskey-rss-summarizer/internal/infrastructure/misskey"
 	"misskey-rss-summarizer/internal/infrastructure/rss"
-	"misskey-rss-summarizer/internal/infrastructure/scraper"
 	"misskey-rss-summarizer/internal/infrastructure/storage"
 	"misskey-rss-summarizer/internal/interfaces/config"
 )
@@ -44,19 +43,11 @@ func main() {
 		summarizerRepo, _ = llm.NewSummarizerRepository(llm.Config{Provider: "noop"})
 	}
 
-	// コンテンツフェッチャーのセットアップ（オプション）
-	var contentFetcher scraper.ContentFetcher
-	if cfg.ScrapeContent {
-		contentFetcher = scraper.NewContentFetcher(cfg.GetScrapeTimeout())
-		log.Println("Web scraping enabled")
-	}
-
 	service := application.NewRSSFeedService(
 		feedRepo,
 		noteRepo,
 		cacheRepo,
 		summarizerRepo,
-		contentFetcher,
 	)
 
 	ctx, cancel := context.WithCancel(context.Background())

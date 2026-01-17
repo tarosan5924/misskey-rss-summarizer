@@ -108,10 +108,6 @@ func TestConfig_Defaults(t *testing.T) {
 		t.Errorf("expected default maxTokens 500, got %d", gs.maxTokens)
 	}
 
-	if gs.maxInputLength != 4000 {
-		t.Errorf("expected default maxInputLength 4000, got %d", gs.maxInputLength)
-	}
-
 	expectedTimeout := 30 * time.Second
 	if gs.timeout != expectedTimeout {
 		t.Errorf("expected default timeout %v, got %v", expectedTimeout, gs.timeout)
@@ -125,13 +121,12 @@ func TestConfig_Defaults(t *testing.T) {
 func TestConfig_CustomValues(t *testing.T) {
 	customPrompt := "カスタムプロンプト"
 	cfg := Config{
-		Provider:       "gemini",
-		APIKey:         "test-key",
-		Model:          "gemini-1.5-pro",
-		MaxTokens:      1000,
-		MaxInputLength: 8000,
-		Timeout:        60 * time.Second,
-		Prompt:         customPrompt,
+		Provider:  "gemini",
+		APIKey:    "test-key",
+		Model:     "gemini-1.5-pro",
+		MaxTokens: 1000,
+		Timeout:   60 * time.Second,
+		Prompt:    customPrompt,
 	}
 
 	summarizer, err := newGeminiSummarizer(cfg)
@@ -147,10 +142,6 @@ func TestConfig_CustomValues(t *testing.T) {
 
 	if gs.maxTokens != 1000 {
 		t.Errorf("expected maxTokens 1000, got %d", gs.maxTokens)
-	}
-
-	if gs.maxInputLength != 8000 {
-		t.Errorf("expected maxInputLength 8000, got %d", gs.maxInputLength)
 	}
 
 	if gs.timeout != 60*time.Second {

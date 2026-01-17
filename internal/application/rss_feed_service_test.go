@@ -71,7 +71,7 @@ type mockSummarizerRepository struct {
 	called  int
 }
 
-func (m *mockSummarizerRepository) Summarize(ctx context.Context, content, title string) (string, error) {
+func (m *mockSummarizerRepository) Summarize(ctx context.Context, url, title string) (string, error) {
 	m.called++
 	if m.err != nil {
 		return "", m.err
@@ -81,20 +81,6 @@ func (m *mockSummarizerRepository) Summarize(ctx context.Context, content, title
 
 func (m *mockSummarizerRepository) IsEnabled() bool {
 	return m.enabled
-}
-
-type mockContentFetcher struct {
-	content string
-	err     error
-	called  int
-}
-
-func (m *mockContentFetcher) FetchContent(ctx context.Context, url string) (string, error) {
-	m.called++
-	if m.err != nil {
-		return "", m.err
-	}
-	return m.content, nil
 }
 
 func TestRSSFeedService_ProcessFeed_NewEntries(t *testing.T) {
@@ -111,7 +97,7 @@ func TestRSSFeedService_ProcessFeed_NewEntries(t *testing.T) {
 	noteRepo := &mockNoteRepository{}
 	cacheRepo := newMockCacheRepository()
 
-	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil, nil)
+	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil)
 
 	err := service.ProcessFeed(ctx, "https://example.tld/rss")
 	if err != nil {
@@ -146,7 +132,7 @@ func TestRSSFeedService_ProcessFeed_SkipProcessedEntries(t *testing.T) {
 	cacheRepo.processedGUIDs["guid-1"] = true
 	cacheRepo.latestTime = now.Add(-2 * time.Hour)
 
-	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil, nil)
+	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil)
 
 	err := service.ProcessFeed(ctx, "https://example.tld/rss")
 	if err != nil {
@@ -165,7 +151,7 @@ func TestRSSFeedService_ProcessFeed_FetchError(t *testing.T) {
 	noteRepo := &mockNoteRepository{}
 	cacheRepo := newMockCacheRepository()
 
-	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil, nil)
+	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil)
 
 	err := service.ProcessFeed(ctx, "https://example.tld/rss")
 	if err == nil {
@@ -187,7 +173,7 @@ func TestRSSFeedService_ProcessAllFeeds(t *testing.T) {
 	noteRepo := &mockNoteRepository{}
 	cacheRepo := newMockCacheRepository()
 
-	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil, nil)
+	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil)
 
 	urls := []string{
 		"https://example.tld/rss",
@@ -219,7 +205,7 @@ func TestRSSFeedService_ProcessFeed_WithSummarizer(t *testing.T) {
 		enabled: true,
 	}
 
-	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, summarizerRepo, nil)
+	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, summarizerRepo)
 
 	err := service.ProcessFeed(ctx, "https://example.tld/rss")
 	if err != nil {
@@ -260,7 +246,7 @@ func TestRSSFeedService_ProcessFeed_SummarizerDisabled(t *testing.T) {
 		enabled: false, // 無効
 	}
 
-	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, summarizerRepo, nil)
+	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, summarizerRepo)
 
 	err := service.ProcessFeed(ctx, "https://example.tld/rss")
 	if err != nil {
@@ -281,73 +267,6 @@ func TestRSSFeedService_ProcessFeed_SummarizerDisabled(t *testing.T) {
 	}
 }
 
-func TestRSSFeedService_ProcessFeed_WithContentFetcher(t *testing.T) {
-	ctx := context.Background()
-
-	now := time.Now()
-	entries := []*entity.FeedEntry{
-		entity.NewFeedEntry("Article 1", "https://example.tld/1", "Short", now, "guid-1"),
-	}
-
-	feedRepo := &mockFeedRepository{entries: entries}
-	noteRepo := &mockNoteRepository{}
-	cacheRepo := newMockCacheRepository()
-	summarizerRepo := &mockSummarizerRepository{
-		summary: "要約テキスト",
-		enabled: true,
-	}
-	contentFetcher := &mockContentFetcher{
-		content: "This is the full article content fetched from the web page. It contains much more detail than the short RSS description.",
-	}
-
-	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, summarizerRepo, contentFetcher)
-
-	err := service.ProcessFeed(ctx, "https://example.tld/rss")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if contentFetcher.called != 1 {
-		t.Errorf("expected content fetcher to be called once (description < 100 chars), got %d", contentFetcher.called)
-	}
-
-	if summarizerRepo.called != 1 {
-		t.Errorf("expected summarizer to be called once, got %d", summarizerRepo.called)
-	}
-}
-
-func TestRSSFeedService_ProcessFeed_ContentFetcherError(t *testing.T) {
-	ctx := context.Background()
-
-	now := time.Now()
-	entries := []*entity.FeedEntry{
-		entity.NewFeedEntry("Article 1", "https://example.tld/1", "Short description", now, "guid-1"),
-	}
-
-	feedRepo := &mockFeedRepository{entries: entries}
-	noteRepo := &mockNoteRepository{}
-	cacheRepo := newMockCacheRepository()
-	summarizerRepo := &mockSummarizerRepository{
-		summary: "要約",
-		enabled: true,
-	}
-	contentFetcher := &mockContentFetcher{
-		err: errors.New("fetch error"),
-	}
-
-	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, summarizerRepo, contentFetcher)
-
-	err := service.ProcessFeed(ctx, "https://example.tld/rss")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	// エラーが発生してもポストは続行される
-	if len(noteRepo.posted) != 1 {
-		t.Errorf("expected 1 note posted despite content fetcher error, got %d", len(noteRepo.posted))
-	}
-}
-
 func TestRSSFeedService_ProcessFeed_SummarizerError(t *testing.T) {
 	ctx := context.Background()
 
@@ -364,7 +283,7 @@ func TestRSSFeedService_ProcessFeed_SummarizerError(t *testing.T) {
 		enabled: true,
 	}
 
-	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, summarizerRepo, nil)
+	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, summarizerRepo)
 
 	err := service.ProcessFeed(ctx, "https://example.tld/rss")
 	if err != nil {
@@ -379,43 +298,5 @@ func TestRSSFeedService_ProcessFeed_SummarizerError(t *testing.T) {
 	postedText := noteRepo.posted[0].Text
 	if strings.Contains(postedText, "【要約】") {
 		t.Error("expected note not to contain summary when summarization fails")
-	}
-}
-
-func TestRSSFeedService_ProcessFeed_LongDescription_NoContentFetcher(t *testing.T) {
-	ctx := context.Background()
-
-	now := time.Now()
-	longDesc := "This is a very long description from the RSS feed itself. " + strings.Repeat("More content. ", 20)
-	entries := []*entity.FeedEntry{
-		entity.NewFeedEntry("Article 1", "https://example.tld/1", longDesc, now, "guid-1"),
-	}
-
-	feedRepo := &mockFeedRepository{entries: entries}
-	noteRepo := &mockNoteRepository{}
-	cacheRepo := newMockCacheRepository()
-	summarizerRepo := &mockSummarizerRepository{
-		summary: "RSS要約",
-		enabled: true,
-	}
-	contentFetcher := &mockContentFetcher{
-		content: "Fetched content",
-	}
-
-	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, summarizerRepo, contentFetcher)
-
-	err := service.ProcessFeed(ctx, "https://example.tld/rss")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	// Description が100文字以上なのでコンテンツフェッチャーは呼ばれない
-	if contentFetcher.called != 0 {
-		t.Errorf("expected content fetcher not to be called (description >= 100 chars), got %d calls", contentFetcher.called)
-	}
-
-	// 要約は呼ばれる
-	if summarizerRepo.called != 1 {
-		t.Errorf("expected summarizer to be called once, got %d", summarizerRepo.called)
 	}
 }

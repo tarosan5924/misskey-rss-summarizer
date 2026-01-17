@@ -9,7 +9,6 @@ import (
 
 	"misskey-rss-summarizer/internal/domain/entity"
 	"misskey-rss-summarizer/internal/domain/repository"
-	"misskey-rss-summarizer/internal/infrastructure/scraper"
 )
 
 type RSSFeedService struct {
@@ -17,7 +16,6 @@ type RSSFeedService struct {
 	noteRepo       repository.NoteRepository
 	cacheRepo      repository.CacheRepository
 	summarizerRepo repository.SummarizerRepository
-	contentFetcher scraper.ContentFetcher
 }
 
 func NewRSSFeedService(
@@ -25,14 +23,12 @@ func NewRSSFeedService(
 	noteRepo repository.NoteRepository,
 	cacheRepo repository.CacheRepository,
 	summarizerRepo repository.SummarizerRepository,
-	contentFetcher scraper.ContentFetcher,
 ) *RSSFeedService {
 	return &RSSFeedService{
 		feedRepo:       feedRepo,
 		noteRepo:       noteRepo,
 		cacheRepo:      cacheRepo,
 		summarizerRepo: summarizerRepo,
-		contentFetcher: contentFetcher,
 	}
 }
 
@@ -89,28 +85,13 @@ func (s *RSSFeedService) ProcessFeed(ctx context.Context, rssURL string) error {
 	for _, entry := range newEntries {
 		var summary string
 
-		// 要約機能が有効な場合
+		// 要約機能が有効な場合、記事URLを渡してLLMに要約してもらう
 		if s.summarizerRepo != nil && s.summarizerRepo.IsEnabled() {
-			content := entry.Description
-
-			// スクレイピングが有効で、Descriptionが空または短い場合、Webページから本文取得
-			if s.contentFetcher != nil && len(content) < 100 {
-				fetchedContent, err := s.contentFetcher.FetchContent(ctx, entry.Link)
-				if err != nil {
-					log.Printf("Failed to fetch content [%s]: %v", entry.Link, err)
-					// フォールバック: Descriptionを使用
-				} else {
-					content = fetchedContent
-				}
-			}
-
-			if content != "" {
-				var err error
-				summary, err = s.summarizerRepo.Summarize(ctx, content, entry.Title)
-				if err != nil {
-					log.Printf("Failed to summarize [%s]: %v", entry.Title, err)
-					// 要約失敗時は要約なしで続行
-				}
+			var err error
+			summary, err = s.summarizerRepo.Summarize(ctx, entry.Link, entry.Title)
+			if err != nil {
+				log.Printf("Failed to summarize [%s]: %v", entry.Title, err)
+				// 要約失敗時は要約なしで続行
 			}
 		}
 

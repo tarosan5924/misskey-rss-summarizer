@@ -9,7 +9,7 @@ func TestNoopSummarizer_Summarize(t *testing.T) {
 	summarizer := newNoopSummarizer()
 
 	ctx := context.Background()
-	summary, err := summarizer.Summarize(ctx, "test content", "test title")
+	summary, err := summarizer.Summarize(ctx, "http://example.com/article", "test title")
 
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
