@@ -10,8 +10,10 @@ import (
 	"time"
 
 	"misskey-rss-summarizer/internal/application"
+	"misskey-rss-summarizer/internal/infrastructure/llm"
 	"misskey-rss-summarizer/internal/infrastructure/misskey"
 	"misskey-rss-summarizer/internal/infrastructure/rss"
+	"misskey-rss-summarizer/internal/infrastructure/scraper"
 	"misskey-rss-summarizer/internal/infrastructure/storage"
 	"misskey-rss-summarizer/internal/interfaces/config"
 )
@@ -34,7 +36,28 @@ func main() {
 	})
 	cacheRepo := storage.NewMemoryCacheRepository()
 
-	service := application.NewRSSFeedService(feedRepo, noteRepo, cacheRepo)
+	// LLM要約機能のセットアップ
+	summarizerRepo, err := llm.NewSummarizerRepository(cfg.GetLLMConfig())
+	if err != nil {
+		log.Printf("Warning: LLM summarizer initialization failed: %v", err)
+		log.Println("Continuing without summarization feature...")
+		summarizerRepo, _ = llm.NewSummarizerRepository(llm.Config{Provider: "noop"})
+	}
+
+	// コンテンツフェッチャーのセットアップ（オプション）
+	var contentFetcher scraper.ContentFetcher
+	if cfg.ScrapeContent {
+		contentFetcher = scraper.NewContentFetcher(cfg.GetScrapeTimeout())
+		log.Println("Web scraping enabled")
+	}
+
+	service := application.NewRSSFeedService(
+		feedRepo,
+		noteRepo,
+		cacheRepo,
+		summarizerRepo,
+		contentFetcher,
+	)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

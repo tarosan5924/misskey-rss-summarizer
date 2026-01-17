@@ -9,23 +9,30 @@ import (
 
 	"misskey-rss-summarizer/internal/domain/entity"
 	"misskey-rss-summarizer/internal/domain/repository"
+	"misskey-rss-summarizer/internal/infrastructure/scraper"
 )
 
 type RSSFeedService struct {
-	feedRepo  repository.FeedRepository
-	noteRepo  repository.NoteRepository
-	cacheRepo repository.CacheRepository
+	feedRepo       repository.FeedRepository
+	noteRepo       repository.NoteRepository
+	cacheRepo      repository.CacheRepository
+	summarizerRepo repository.SummarizerRepository
+	contentFetcher scraper.ContentFetcher
 }
 
 func NewRSSFeedService(
 	feedRepo repository.FeedRepository,
 	noteRepo repository.NoteRepository,
 	cacheRepo repository.CacheRepository,
+	summarizerRepo repository.SummarizerRepository,
+	contentFetcher scraper.ContentFetcher,
 ) *RSSFeedService {
 	return &RSSFeedService{
-		feedRepo:  feedRepo,
-		noteRepo:  noteRepo,
-		cacheRepo: cacheRepo,
+		feedRepo:       feedRepo,
+		noteRepo:       noteRepo,
+		cacheRepo:      cacheRepo,
+		summarizerRepo: summarizerRepo,
+		contentFetcher: contentFetcher,
 	}
 }
 
@@ -80,7 +87,34 @@ func (s *RSSFeedService) ProcessFeed(ctx context.Context, rssURL string) error {
 
 	var latestTime time.Time
 	for _, entry := range newEntries {
-		note := entity.NewNoteFromFeed(entry, entity.VisibilityHome)
+		var summary string
+
+		// 要約機能が有効な場合
+		if s.summarizerRepo != nil && s.summarizerRepo.IsEnabled() {
+			content := entry.Description
+
+			// スクレイピングが有効で、Descriptionが空または短い場合、Webページから本文取得
+			if s.contentFetcher != nil && len(content) < 100 {
+				fetchedContent, err := s.contentFetcher.FetchContent(ctx, entry.Link)
+				if err != nil {
+					log.Printf("Failed to fetch content [%s]: %v", entry.Link, err)
+					// フォールバック: Descriptionを使用
+				} else {
+					content = fetchedContent
+				}
+			}
+
+			if content != "" {
+				var err error
+				summary, err = s.summarizerRepo.Summarize(ctx, content, entry.Title)
+				if err != nil {
+					log.Printf("Failed to summarize [%s]: %v", entry.Title, err)
+					// 要約失敗時は要約なしで続行
+				}
+			}
+		}
+
+		note := entity.NewNoteFromFeedWithSummary(entry, summary, entity.VisibilityHome)
 		if err := s.noteRepo.Post(ctx, note); err != nil {
 			log.Printf("Failed to post to Misskey [%s]: %v", entry.Title, err)
 			continue
