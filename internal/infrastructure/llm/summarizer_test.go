@@ -10,7 +10,7 @@ func TestNewSummarizerRepository_Gemini(t *testing.T) {
 	cfg := Config{
 		Provider: "gemini",
 		APIKey:   "test-api-key",
-		Model:    "gemini-1.5-flash",
+		Model:    "gemini-2.0-flash-exp",
 	}
 
 	repo, err := NewSummarizerRepository(cfg)
@@ -77,6 +77,7 @@ func TestNewSummarizerRepository_GeminiNoAPIKey(t *testing.T) {
 	cfg := Config{
 		Provider: "gemini",
 		APIKey:   "",
+		Model:    "gemini-2.0-flash-exp",
 	}
 
 	_, err := NewSummarizerRepository(cfg)
@@ -85,10 +86,24 @@ func TestNewSummarizerRepository_GeminiNoAPIKey(t *testing.T) {
 	}
 }
 
+func TestNewSummarizerRepository_GeminiNoModel(t *testing.T) {
+	cfg := Config{
+		Provider: "gemini",
+		APIKey:   "test-key",
+		Model:    "",
+	}
+
+	_, err := NewSummarizerRepository(cfg)
+	if err == nil {
+		t.Error("expected error when gemini model is empty, got nil")
+	}
+}
+
 func TestConfig_Defaults(t *testing.T) {
 	cfg := Config{
 		Provider: "gemini",
 		APIKey:   "test-key",
+		Model:    "gemini-2.0-flash-exp",
 	}
 
 	// Gemini summarizerを作成してデフォルト値を確認
@@ -100,8 +115,8 @@ func TestConfig_Defaults(t *testing.T) {
 	gs := summarizer.(*geminiSummarizer)
 
 	// デフォルト値の確認
-	if gs.model != "gemini-1.5-flash" {
-		t.Errorf("expected default model 'gemini-1.5-flash', got %s", gs.model)
+	if gs.model != "gemini-2.0-flash-exp" {
+		t.Errorf("expected model 'gemini-2.0-flash-exp', got %s", gs.model)
 	}
 
 	if gs.maxTokens != nil {

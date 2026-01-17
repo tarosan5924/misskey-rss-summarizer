@@ -22,50 +22,20 @@ func TestGeminiSummarizer_NewGeminiSummarizer_NoAPIKey(t *testing.T) {
 	}
 }
 
-func TestGeminiSummarizer_NewGeminiSummarizer_DefaultValues(t *testing.T) {
-	// デフォルト値のテスト（クライアント作成はスキップ）
+func TestGeminiSummarizer_NewGeminiSummarizer_NoModel(t *testing.T) {
 	cfg := Config{
 		Provider: "gemini",
 		APIKey:   "test-key",
+		Model:    "",
 	}
 
-	// 実際のクライアント作成は行わず、設定値のみをテスト
-	model := cfg.Model
-	if model == "" {
-		model = "gemini-1.5-flash"
+	_, err := newGeminiSummarizer(cfg)
+	if err == nil {
+		t.Error("expected error when model is empty, got nil")
 	}
 
-	// maxTokensが0の場合はnil（指定なし）
-	var maxTokens *int32
-	if cfg.MaxTokens > 0 {
-		tokens := int32(cfg.MaxTokens)
-		maxTokens = &tokens
-	}
-
-	timeout := cfg.Timeout
-	if timeout == 0 {
-		timeout = 30 * time.Second
-	}
-
-	systemInstruction := cfg.SystemInstruction
-	if systemInstruction == "" {
-		systemInstruction = DefaultSystemPrompt
-	}
-
-	if model != "gemini-1.5-flash" {
-		t.Errorf("expected default model 'gemini-1.5-flash', got %s", model)
-	}
-
-	if maxTokens != nil {
-		t.Errorf("expected default maxTokens to be nil (no limit), got %d", *maxTokens)
-	}
-
-	if timeout != 30*time.Second {
-		t.Errorf("expected default timeout 30s, got %v", timeout)
-	}
-
-	if systemInstruction != DefaultSystemPrompt {
-		t.Error("expected default system instruction")
+	if !strings.Contains(err.Error(), "model name is required") {
+		t.Errorf("expected 'model name is required' error, got: %v", err)
 	}
 }
 
@@ -80,6 +50,16 @@ func TestGeminiSummarizer_ConfigValidation(t *testing.T) {
 			config: Config{
 				Provider: "gemini",
 				APIKey:   "",
+				Model:    "gemini-2.0-flash-exp",
+			},
+			expectError: true,
+		},
+		{
+			name: "Missing model",
+			config: Config{
+				Provider: "gemini",
+				APIKey:   "test-key",
+				Model:    "",
 			},
 			expectError: true,
 		},

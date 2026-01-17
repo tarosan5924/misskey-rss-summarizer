@@ -24,9 +24,8 @@ func newGeminiSummarizer(cfg Config) (repository.SummarizerRepository, error) {
 		return nil, fmt.Errorf("Gemini API key is required")
 	}
 
-	model := cfg.Model
-	if model == "" {
-		model = "gemini-1.5-flash" // コスト効率の良いデフォルト
+	if cfg.Model == "" {
+		return nil, fmt.Errorf("Gemini model name is required")
 	}
 
 	// maxTokensが0の場合はnil（指定なし）にする
@@ -58,7 +57,7 @@ func newGeminiSummarizer(cfg Config) (repository.SummarizerRepository, error) {
 
 	return &geminiSummarizer{
 		client:       client,
-		model:        model,
+		model:        cfg.Model,
 		maxTokens:    maxTokens,
 		systemPrompt: systemInstruction,
 		timeout:      timeout,
