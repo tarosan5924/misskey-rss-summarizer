@@ -24,6 +24,9 @@ LLM_MODEL=<check_provider_documentation_for_available_models>
 
 The bot will automatically fetch article content from URLs and generate summaries using the specified LLM provider.
 
+**Supported Providers:**
+- `gemini` - Google Gemini API
+
 **Important:** Check the LLM provider's documentation for currently available models, as model names may change over time.
 
 **Note:** LLM summarization is opt-in. If `LLM_PROVIDER` is not set or empty, the bot will post articles without summaries.
