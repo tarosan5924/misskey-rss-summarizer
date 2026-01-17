@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"misskeyRSSbot/internal/domain/entity"
+	"misskey-rss-summarizer/internal/domain/entity"
 )
 
 type NoteRepository interface {

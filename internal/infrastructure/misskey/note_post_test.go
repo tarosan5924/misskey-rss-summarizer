@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"misskeyRSSbot/internal/domain/entity"
+	"misskey-rss-summarizer/internal/domain/entity"
 )
 
 func TestNoteRepository_Post_Success(t *testing.T) {

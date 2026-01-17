@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"misskeyRSSbot/internal/domain/entity"
-	"misskeyRSSbot/internal/domain/repository"
+	"misskey-rss-summarizer/internal/domain/entity"
+	"misskey-rss-summarizer/internal/domain/repository"
 
 	"github.com/mmcdole/gofeed"
 )

@@ -1,4 +1,4 @@
-# Misskey RSS Bot
+# Misskey RSS Summarizer
 
 A bot that fetches RSS feeds and automatically posts them to Misskey.
 
@@ -10,7 +10,7 @@ Create a `.env` file based on `.env.example`.
 
 ```bash
 go build
-./misskeyRSSbot
+./misskey-rss-summarizer
 ```
 
 ### Running as a systemd Service
@@ -25,8 +25,8 @@ After=network.target
 [Service]
 Type=simple
 User=youruser
-WorkingDirectory=/path/to/misskeyRSSbot
-ExecStart=/path/to/misskeyRSSbot/misskeyRSSbot
+WorkingDirectory=/path/to/misskey-rss-summarizer
+ExecStart=/path/to/misskey-rss-summarizer/misskey-rss-summarizer
 Restart=always
 RestartSec=10
 
