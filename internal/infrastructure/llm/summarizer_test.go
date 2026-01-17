@@ -107,7 +107,6 @@ func TestConfig_Defaults(t *testing.T) {
 		Model:    "gemini-2.0-flash-exp",
 	}
 
-	// Gemini summarizerを作成してデフォルト値を確認
 	summarizer, err := newGeminiSummarizer(context.TODO(), cfg)
 	if err != nil {
 		t.Fatalf("failed to create summarizer: %v", err)
@@ -115,7 +114,6 @@ func TestConfig_Defaults(t *testing.T) {
 
 	gs := summarizer.(*geminiSummarizer)
 
-	// デフォルト値の確認
 	if gs.model != "gemini-2.0-flash-exp" {
 		t.Errorf("expected model 'gemini-2.0-flash-exp', got %s", gs.model)
 	}

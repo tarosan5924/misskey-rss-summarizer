@@ -10,7 +10,6 @@ import (
 	"misskeyRSSbot/internal/domain/repository"
 )
 
-// geminiSummarizer はGoogle Gemini APIを使用した要約実装
 type geminiSummarizer struct {
 	client       *genai.Client
 	model        string
@@ -28,7 +27,6 @@ func newGeminiSummarizer(ctx context.Context, cfg Config) (repository.Summarizer
 		return nil, fmt.Errorf("Gemini model name is required")
 	}
 
-	// maxTokensが0の場合はnil（指定なし）にする
 	var maxTokens *int32
 	if cfg.MaxTokens > 0 {
 		tokens := int32(cfg.MaxTokens)
@@ -45,10 +43,8 @@ func newGeminiSummarizer(ctx context.Context, cfg Config) (repository.Summarizer
 		timeout = 30 * time.Second
 	}
 
-	// Gemini クライアントを作成（親コンテキストを使用）
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{
 		APIKey: cfg.APIKey,
-		// Backend はデフォルトで BackendGeminiAPI が使用される
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Gemini client: %w", err)
@@ -64,35 +60,28 @@ func newGeminiSummarizer(ctx context.Context, cfg Config) (repository.Summarizer
 }
 
 func (s *geminiSummarizer) Summarize(ctx context.Context, url, title string) (string, error) {
-	// タイムアウト付きコンテキストを作成
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	// URLと記事タイトルをプロンプトに含める
 	userPrompt := fmt.Sprintf("以下のURLの記事を要約してください。\n\n記事タイトル: %s\n記事URL: %s", title, url)
 
-	// システムインストラクションとユーザープロンプトを設定
 	systemInstruction := genai.NewContentFromText(s.systemPrompt, genai.RoleUser)
 	userContent := genai.NewContentFromText(userPrompt, genai.RoleUser)
 
-	// GenerateContent設定
 	temperature := float32(0.3)
 	config := &genai.GenerateContentConfig{
 		Temperature:       &temperature,
 		SystemInstruction: systemInstruction,
 	}
-	// maxTokensが指定されている場合のみ設定
 	if s.maxTokens != nil {
 		config.MaxOutputTokens = *s.maxTokens
 	}
 
-	// Gemini API呼び出し
 	resp, err := s.client.Models.GenerateContent(ctx, s.model, []*genai.Content{userContent}, config)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate content: %w", err)
 	}
 
-	// レスポンスから要約を抽出
 	if len(resp.Candidates) == 0 {
 		return "", fmt.Errorf("no candidates returned from Gemini API")
 	}

@@ -23,7 +23,6 @@ type Config struct {
 
 	LocalOnly bool `envconfig:"LOCAL_ONLY" default:"false"`
 
-	// LLM要約機能の設定
 	LLMProvider          string `envconfig:"LLM_PROVIDER" default:""`
 	LLMAPIKey            string `envconfig:"LLM_API_KEY"`
 	LLMModel             string `envconfig:"LLM_MODEL"`
@@ -92,17 +91,15 @@ func (c *Config) GetRefillInterval() time.Duration {
 	return time.Duration(c.RefillInterval) * time.Second
 }
 
-// LLMConfig はLLM要約機能の設定を表す構造体
 type LLMConfig struct {
-	Provider          string        // "gemini" or "noop" (empty defaults to "noop")
-	APIKey            string        // LLM APIキー
-	Model             string        // モデル名
-	MaxTokens         int           // 最大出力トークン数
-	Timeout           time.Duration // APIタイムアウト
-	SystemInstruction string        // カスタムシステムインストラクション
+	Provider          string
+	APIKey            string
+	Model             string
+	MaxTokens         int
+	Timeout           time.Duration
+	SystemInstruction string
 }
 
-// GetLLMConfig はLLM設定を返します
 func (c *Config) GetLLMConfig() LLMConfig {
 	return LLMConfig{
 		Provider:          c.LLMProvider,

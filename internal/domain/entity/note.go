@@ -31,7 +31,6 @@ func NewNote(text string, visibility NoteVisibility) *Note {
 	}
 }
 
-// NewNoteFromFeedWithSummary は要約付きでFeedEntryからNoteを生成します
 func NewNoteFromFeedWithSummary(entry *FeedEntry, summary string, visibility NoteVisibility) *Note {
 	if summary == "" {
 		return NewNoteFromFeed(entry, visibility)

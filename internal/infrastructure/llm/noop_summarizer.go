@@ -6,7 +6,6 @@ import (
 	"misskeyRSSbot/internal/domain/repository"
 )
 
-// noopSummarizer は要約機能が無効の場合に使用される何もしない実装
 type noopSummarizer struct{}
 
 func newNoopSummarizer() repository.SummarizerRepository {

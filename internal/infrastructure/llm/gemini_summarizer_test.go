@@ -80,8 +80,6 @@ func TestGeminiSummarizer_ConfigValidation(t *testing.T) {
 }
 
 func TestGeminiSummarizer_IsEnabled(t *testing.T) {
-	// IsEnabledは常にtrueを返すことを確認
-	// 実際のクライアントなしでテスト
 	summarizer := &geminiSummarizer{}
 
 	if !summarizer.IsEnabled() {
@@ -100,7 +98,6 @@ func TestGeminiSummarizer_CustomConfig(t *testing.T) {
 		SystemInstruction: customInstruction,
 	}
 
-	// 設定値のバリデーション（実際のクライアント作成はスキップ）
 	if cfg.Model != "gemini-1.5-pro" {
 		t.Errorf("expected model 'gemini-1.5-pro', got %s", cfg.Model)
 	}
@@ -109,7 +106,6 @@ func TestGeminiSummarizer_CustomConfig(t *testing.T) {
 		t.Errorf("expected maxTokens 1000, got %d", cfg.MaxTokens)
 	}
 
-	// maxTokensが設定されていることを確認
 	var maxTokens *int32
 	if cfg.MaxTokens > 0 {
 		tokens := int32(cfg.MaxTokens)

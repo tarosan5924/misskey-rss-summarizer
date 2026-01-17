@@ -85,13 +85,11 @@ func (s *RSSFeedService) ProcessFeed(ctx context.Context, rssURL string) error {
 	for _, entry := range newEntries {
 		var summary string
 
-		// 要約機能が有効な場合、記事URLを渡してLLMに要約してもらう
 		if s.summarizerRepo != nil && s.summarizerRepo.IsEnabled() {
 			var err error
 			summary, err = s.summarizerRepo.Summarize(ctx, entry.Link, entry.Title)
 			if err != nil {
 				log.Printf("Failed to summarize [%s]: %v", entry.Title, err)
-				// 要約失敗時は要約なしで続行
 			}
 		}
 

@@ -38,7 +38,6 @@ func main() {
 	})
 	cacheRepo := storage.NewMemoryCacheRepository()
 
-	// LLM要約機能のセットアップ
 	llmCfg := cfg.GetLLMConfig()
 	summarizerRepo, err := llm.NewSummarizerRepository(ctx, llm.Config{
 		Provider:          llmCfg.Provider,
