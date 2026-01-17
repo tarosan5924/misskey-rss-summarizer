@@ -39,7 +39,15 @@ func main() {
 	cacheRepo := storage.NewMemoryCacheRepository()
 
 	// LLM要約機能のセットアップ
-	summarizerRepo, err := llm.NewSummarizerRepository(ctx, cfg.GetLLMConfig())
+	llmCfg := cfg.GetLLMConfig()
+	summarizerRepo, err := llm.NewSummarizerRepository(ctx, llm.Config{
+		Provider:          llmCfg.Provider,
+		APIKey:            llmCfg.APIKey,
+		Model:             llmCfg.Model,
+		MaxTokens:         llmCfg.MaxTokens,
+		Timeout:           llmCfg.Timeout,
+		SystemInstruction: llmCfg.SystemInstruction,
+	})
 	if err != nil {
 		log.Printf("Warning: LLM summarizer initialization failed: %v", err)
 		log.Println("Continuing without summarization feature...")

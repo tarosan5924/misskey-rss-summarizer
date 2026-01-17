@@ -8,8 +8,6 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
-
-	"misskeyRSSbot/internal/infrastructure/llm"
 )
 
 type Config struct {
@@ -94,9 +92,19 @@ func (c *Config) GetRefillInterval() time.Duration {
 	return time.Duration(c.RefillInterval) * time.Second
 }
 
+// LLMConfig はLLM要約機能の設定を表す構造体
+type LLMConfig struct {
+	Provider          string        // "gemini" or "noop" (empty defaults to "noop")
+	APIKey            string        // LLM APIキー
+	Model             string        // モデル名
+	MaxTokens         int           // 最大出力トークン数
+	Timeout           time.Duration // APIタイムアウト
+	SystemInstruction string        // カスタムシステムインストラクション
+}
+
 // GetLLMConfig はLLM設定を返します
-func (c *Config) GetLLMConfig() llm.Config {
-	return llm.Config{
+func (c *Config) GetLLMConfig() LLMConfig {
+	return LLMConfig{
 		Provider:          c.LLMProvider,
 		APIKey:            c.LLMAPIKey,
 		Model:             c.LLMModel,
