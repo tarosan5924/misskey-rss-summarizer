@@ -120,236 +120,51 @@
 - エレガントで読みやすいコード
 - プロジェクトのベストプラクティスの体現
 
-## 称賛すべき実装例
+## 称賛すべき実装パターン
 
+本プロジェクトで既に実装されている、特に優れた設計パターンと評価基準を示します。
 
 ### クリーンアーキテクチャの忠実な実装
 
 依存関係が一方向に保たれ、各層の責務が明確に分離されています。特に、domain層が完全に独立しており、ビジネスロジックが外部依存から保護されている点が優れています。
 
-```go
-type RSSFeedService struct {
-	feedRepo  repository.FeedRepository
-	noteRepo  repository.NoteRepository
-	cacheRepo repository.CacheRepository
-}
-```
+参照: [internal/application/rss_feed_service.go](internal/application/rss_feed_service.go) のサービス層実装
 
 ### レートリミッターの実装
 
-並行処理の安全性を保ちながら、効率的なリソース管理を実現しています。`sync.Mutex`による排他制御と、`context.Context`によるキャンセル対応が適切に実装されています。
+並行処理の安全性を保ちながら、効率的なリソース管理を実現しています。`sync.Mutex`による排他制御と、`context.Context`によるキャンセル対応、待機後の適切な再ロック取得が実装されています。
 
-```go
-func (rl *rateLimiter) Wait(ctx context.Context) error {
-	rl.mu.Lock()
-	
-	now := time.Now()
-	elapsed := now.Sub(rl.lastRefill)
-	permitsToAdd := int(elapsed / rl.refillRate)
-	if permitsToAdd > 0 {
-		rl.permits = min(rl.permits+permitsToAdd, rl.maxPermits)
-		rl.lastRefill = now
-	}
-	
-	if rl.permits <= 0 {
-		waitTime := rl.refillRate - (now.Sub(rl.lastRefill) % rl.refillRate)
-		rl.mu.Unlock()
-		
-		timer := time.NewTimer(waitTime)
-		defer timer.Stop()
-		
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-timer.C:
-			rl.mu.Lock()
-			rl.permits = 1
-			rl.lastRefill = time.Now()
-			rl.permits--
-			rl.mu.Unlock()
-			return nil
-		}
-	}
-	
-	rl.permits--
-	rl.mu.Unlock()
-	return nil
-}
-```
+参照: [internal/infrastructure/misskey/note_repository.go](internal/infrastructure/misskey/note_repository.go) の`rateLimiter.Wait()`メソッド
 
 ### グレースフルシャットダウン
 
-シグナルハンドリングとcontextによる適切な終了処理が実装されています。リソースのクリーンアップが保証されています。
+シグナルハンドリングとcontextによる適切な終了処理が実装されています。リソースのクリーンアップが保証され、実行中の処理を安全に終了できます。
 
-```go
-ctx, cancel := context.WithCancel(context.Background())
-defer cancel()
-
-sigCh := make(chan os.Signal, 1)
-signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
-
-go func() {
-	<-sigCh
-	log.Println("Shutdown signal received")
-	cancel()
-}()
-
-for {
-	select {
-	case <-ctx.Done():
-		log.Println("Shutting down...")
-		return
-	case <-ticker.C:
-		// 処理
-	}
-}
-```
+参照: [main.go](main.go) のメイン処理
 
 ### 初回実行時の特別処理
 
-初回起動時にスパムを防ぐため、最新のエントリのみを投稿する配慮がされています。ユーザー体験への配慮が見られます。
+初回起動時にスパムを防ぐため、最新のエントリのみを投稿する配慮がされています。ユーザー体験への配慮が見られる設計です。
 
-```go
-isFirstRun := latestPublished.IsZero()
-
-if isFirstRun {
-	var mostRecent *entity.FeedEntry
-	for _, entry := range entries {
-		if mostRecent == nil || entry.Published.After(mostRecent.Published) {
-			mostRecent = entry
-		}
-	}
-	if mostRecent != nil {
-		newEntries = append(newEntries, mostRecent)
-	}
-}
-```
+参照: [internal/application/rss_feed_service.go](internal/application/rss_feed_service.go) の`ProcessFeed()`メソッド
 
 ### テーブル駆動テスト
 
-保守性が高く、拡張しやすいテストパターンが使用されています。
+保守性が高く、拡張しやすいテストパターンが一貫して使用されています。テストケースに`name`フィールドを持たせ、`t.Run()`でサブテストを実行する標準的なパターンです。
 
-```go
-tests := []struct {
-	name      string
-	published time.Time
-	compare   time.Time
-	expected  bool
-}{
-	{
-		name:      "newer than",
-		published: baseTime.Add(1 * time.Hour),
-		compare:   baseTime,
-		expected:  true,
-	},
-	// ...
-}
-
-for _, tt := range tests {
-	t.Run(tt.name, func(t *testing.T) {
-		// テスト実行
-	})
-}
-```
+参照: [internal/domain/entity/feed_test.go](internal/domain/entity/feed_test.go) 等のテストファイル
 
 ### 環境変数の柔軟な管理
 
-単一URLだけでなく、複数URLを番号付きで管理できる拡張性の高い設計です。
+単一URLだけでなく、複数URLを番号付き（`RSS_URL_1`, `RSS_URL_2`...）で管理できる拡張性の高い設計です。将来的な要件変更に対応しやすい設計になっています。
 
-```go
-func loadRSSURLs() []string {
-	var urls []string
-	
-	for i := 1; ; i++ {
-		key := fmt.Sprintf("RSS_URL_%d", i)
-		url := os.Getenv(key)
-		if url == "" {
-			break
-		}
-		urls = append(urls, url)
-	}
-	
-	return urls
-}
-```
+参照: [internal/interfaces/config/config.go](internal/interfaces/config/config.go) の`loadRSSURLs()`関数
 
 ### 一貫したエラーハンドリング
 
-すべてのエラーに適切なコンテキストが付与され、エラーチェーンが保持されています。
+すべてのエラーに適切なコンテキストが付与され、`%w`によるエラーチェーンが保持されています。エラー発生時の追跡が容易になっています。
 
-```go
-entries, err := s.feedRepo.Fetch(ctx, rssURL)
-if err != nil {
-	return fmt.Errorf("failed to fetch RSS feed [%s]: %w", rssURL, err)
-}
-```
-
-## 具体的な実装パターン
-
-### エンティティの実装例
-
-```go
-type FeedEntry struct {
-	Title       string
-	Link        string
-	Description string
-	Published   time.Time
-	GUID        string
-}
-
-func NewFeedEntry(title, link, description string, published time.Time, guid string) *FeedEntry {
-	return &FeedEntry{
-		Title:       title,
-		Link:        link,
-		Description: description,
-		Published:   published,
-		GUID:        guid,
-	}
-}
-
-func (f *FeedEntry) IsNewerThan(t time.Time) bool {
-	return f.Published.After(t)
-}
-```
-
-### リポジトリインターフェースの定義例
-
-```go
-type FeedRepository interface {
-	Fetch(ctx context.Context, url string) ([]*entity.FeedEntry, error)
-}
-```
-
-### サービス層の実装例
-
-```go
-type RSSFeedService struct {
-	feedRepo  repository.FeedRepository
-	noteRepo  repository.NoteRepository
-	cacheRepo repository.CacheRepository
-}
-
-func NewRSSFeedService(
-	feedRepo repository.FeedRepository,
-	noteRepo repository.NoteRepository,
-	cacheRepo repository.CacheRepository,
-) *RSSFeedService {
-	return &RSSFeedService{
-		feedRepo:  feedRepo,
-		noteRepo:  noteRepo,
-		cacheRepo: cacheRepo,
-	}
-}
-```
-
-### エラーハンドリングの実装例
-
-```go
-entries, err := s.feedRepo.Fetch(ctx, rssURL)
-if err != nil {
-	return fmt.Errorf("failed to fetch RSS feed [%s]: %w", rssURL, err)
-}
-```
+参照: プロジェクト全体で一貫して適用
 
 ## 見逃してはいけないGoのベストプラクティス
 
