@@ -51,7 +51,10 @@ func main() {
 	if err != nil {
 		log.Printf("Warning: LLM summarizer initialization failed: %v", err)
 		log.Println("Continuing without summarization feature...")
-		summarizerRepo, _ = llm.NewSummarizerRepository(ctx, llm.Config{Provider: "noop"})
+		summarizerRepo, err = llm.NewSummarizerRepository(ctx, llm.Config{Provider: "noop"})
+		if err != nil {
+			log.Fatal("Failed to create fallback noop summarizer:", err)
+		}
 	}
 
 	service := application.NewRSSFeedService(
