@@ -77,7 +77,7 @@ func TestRSSFeedService_ProcessFeed_NewEntries(t *testing.T) {
 	noteRepo := &mockNoteRepository{}
 	cacheRepo := newMockCacheRepository()
 
-	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo)
+	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil, nil)
 
 	err := service.ProcessFeed(ctx, "https://example.tld/rss")
 	if err != nil {
@@ -112,7 +112,7 @@ func TestRSSFeedService_ProcessFeed_SkipProcessedEntries(t *testing.T) {
 	cacheRepo.processedGUIDs["guid-1"] = true
 	cacheRepo.latestTime = now.Add(-2 * time.Hour)
 
-	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo)
+	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil, nil)
 
 	err := service.ProcessFeed(ctx, "https://example.tld/rss")
 	if err != nil {
@@ -131,7 +131,7 @@ func TestRSSFeedService_ProcessFeed_FetchError(t *testing.T) {
 	noteRepo := &mockNoteRepository{}
 	cacheRepo := newMockCacheRepository()
 
-	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo)
+	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil, nil)
 
 	err := service.ProcessFeed(ctx, "https://example.tld/rss")
 	if err == nil {
@@ -153,7 +153,7 @@ func TestRSSFeedService_ProcessAllFeeds(t *testing.T) {
 	noteRepo := &mockNoteRepository{}
 	cacheRepo := newMockCacheRepository()
 
-	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo)
+	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil, nil)
 
 	urls := []string{
 		"https://example.tld/rss",
