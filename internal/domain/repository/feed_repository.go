@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"misskey-rss-summarizer/internal/domain/entity"
+	"misskeyRSSbot/internal/domain/entity"
 )
 
 type FeedRepository interface {

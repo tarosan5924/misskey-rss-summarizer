@@ -9,7 +9,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 
-	"misskey-rss-summarizer/internal/infrastructure/llm"
+	"misskeyRSSbot/internal/infrastructure/llm"
 )
 
 type Config struct {

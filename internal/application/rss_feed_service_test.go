@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"misskey-rss-summarizer/internal/domain/entity"
+	"misskeyRSSbot/internal/domain/entity"
 )
 
 type mockFeedRepository struct {

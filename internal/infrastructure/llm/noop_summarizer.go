@@ -3,7 +3,7 @@ package llm
 import (
 	"context"
 
-	"misskey-rss-summarizer/internal/domain/repository"
+	"misskeyRSSbot/internal/domain/repository"
 )
 
 // noopSummarizer は要約機能が無効の場合に使用される何もしない実装

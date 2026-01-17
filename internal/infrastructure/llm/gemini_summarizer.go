@@ -7,7 +7,7 @@ import (
 
 	"google.golang.org/genai"
 
-	"misskey-rss-summarizer/internal/domain/repository"
+	"misskeyRSSbot/internal/domain/repository"
 )
 
 // geminiSummarizer はGoogle Gemini APIを使用した要約実装

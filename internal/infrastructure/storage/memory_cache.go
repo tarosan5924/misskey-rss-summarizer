@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"misskey-rss-summarizer/internal/domain/repository"
+	"misskeyRSSbot/internal/domain/repository"
 )
 
 type memoryCache struct {

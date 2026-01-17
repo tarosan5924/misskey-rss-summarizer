@@ -9,12 +9,12 @@ import (
 	"syscall"
 	"time"
 
-	"misskey-rss-summarizer/internal/application"
-	"misskey-rss-summarizer/internal/infrastructure/llm"
-	"misskey-rss-summarizer/internal/infrastructure/misskey"
-	"misskey-rss-summarizer/internal/infrastructure/rss"
-	"misskey-rss-summarizer/internal/infrastructure/storage"
-	"misskey-rss-summarizer/internal/interfaces/config"
+	"misskeyRSSbot/internal/application"
+	"misskeyRSSbot/internal/infrastructure/llm"
+	"misskeyRSSbot/internal/infrastructure/misskey"
+	"misskeyRSSbot/internal/infrastructure/rss"
+	"misskeyRSSbot/internal/infrastructure/storage"
+	"misskeyRSSbot/internal/interfaces/config"
 )
 
 func main() {

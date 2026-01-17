@@ -1,4 +1,4 @@
-module misskey-rss-summarizer
+module misskeyRSSbot
 
 go 1.24.0
 

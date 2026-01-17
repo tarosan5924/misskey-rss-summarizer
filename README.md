@@ -10,7 +10,7 @@ Create a `.env` file based on `.env.example`.
 
 ```bash
 go build
-./misskey-rss-summarizer
+./misskeyRSSbot
 ```
 
 ### Running as a systemd Service
@@ -25,8 +25,8 @@ After=network.target
 [Service]
 Type=simple
 User=youruser
-WorkingDirectory=/path/to/misskey-rss-summarizer
-ExecStart=/path/to/misskey-rss-summarizer/misskey-rss-summarizer
+WorkingDirectory=/path/to/misskeyRSSbot
+ExecStart=/path/to/misskeyRSSbot/misskeyRSSbot
 Restart=always
 RestartSec=10
 

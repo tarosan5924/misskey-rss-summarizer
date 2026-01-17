@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"misskey-rss-summarizer/internal/domain/repository"
+	"misskeyRSSbot/internal/domain/repository"
 )
 
 // Config はLLM要約機能の設定
