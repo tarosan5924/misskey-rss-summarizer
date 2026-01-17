@@ -113,8 +113,8 @@ func TestConfig_Defaults(t *testing.T) {
 	}
 
 	expectedTimeout := 30 * time.Second
-	if gs.client.Timeout != expectedTimeout {
-		t.Errorf("expected default timeout %v, got %v", expectedTimeout, gs.client.Timeout)
+	if gs.timeout != expectedTimeout {
+		t.Errorf("expected default timeout %v, got %v", expectedTimeout, gs.timeout)
 	}
 
 	if gs.systemPrompt != DefaultSystemPrompt {
@@ -153,8 +153,8 @@ func TestConfig_CustomValues(t *testing.T) {
 		t.Errorf("expected maxInputLength 8000, got %d", gs.maxInputLength)
 	}
 
-	if gs.client.Timeout != 60*time.Second {
-		t.Errorf("expected timeout 60s, got %v", gs.client.Timeout)
+	if gs.timeout != 60*time.Second {
+		t.Errorf("expected timeout 60s, got %v", gs.timeout)
 	}
 
 	if gs.systemPrompt != customPrompt {

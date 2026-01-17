@@ -1,24 +1,23 @@
 package llm
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"time"
+
+	"google.golang.org/genai"
 
 	"misskey-rss-summarizer/internal/domain/repository"
 )
 
 // geminiSummarizer はGoogle Gemini APIを使用した要約実装
 type geminiSummarizer struct {
-	apiKey         string
+	client         *genai.Client
 	model          string
-	maxTokens      int
+	maxTokens      int32
 	systemPrompt   string
 	maxInputLength int
-	client         *http.Client
+	timeout        time.Duration
 }
 
 func newGeminiSummarizer(cfg Config) (repository.SummarizerRepository, error) {
@@ -51,17 +50,31 @@ func newGeminiSummarizer(cfg Config) (repository.SummarizerRepository, error) {
 		timeout = 30 * time.Second
 	}
 
+	// Gemini クライアントを作成
+	ctx := context.Background()
+	client, err := genai.NewClient(ctx, &genai.ClientConfig{
+		APIKey: cfg.APIKey,
+		// Backend はデフォルトで BackendGeminiAPI が使用される
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Gemini client: %w", err)
+	}
+
 	return &geminiSummarizer{
-		apiKey:         cfg.APIKey,
+		client:         client,
 		model:          model,
-		maxTokens:      maxTokens,
+		maxTokens:      int32(maxTokens),
 		systemPrompt:   prompt,
 		maxInputLength: maxInputLength,
-		client:         &http.Client{Timeout: timeout},
+		timeout:        timeout,
 	}, nil
 }
 
 func (s *geminiSummarizer) Summarize(ctx context.Context, content, title string) (string, error) {
+	// タイムアウト付きコンテキストを作成
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
 	// 入力テキストの長さを制限
 	if len(content) > s.maxInputLength {
 		content = content[:s.maxInputLength] + "..."
@@ -69,80 +82,35 @@ func (s *geminiSummarizer) Summarize(ctx context.Context, content, title string)
 
 	userPrompt := fmt.Sprintf("記事タイトル: %s\n\n記事内容:\n%s", title, content)
 
-	// Gemini APIリクエストペイロードの構築
-	reqBody := map[string]interface{}{
-		"contents": []map[string]interface{}{
-			{
-				"role": "user",
-				"parts": []map[string]string{
-					{"text": s.systemPrompt},
-				},
-			},
-			{
-				"role": "model",
-				"parts": []map[string]string{
-					{"text": "承知しました。記事を要約します。"},
-				},
-			},
-			{
-				"role": "user",
-				"parts": []map[string]string{
-					{"text": userPrompt},
-				},
-			},
-		},
-		"generationConfig": map[string]interface{}{
-			"maxOutputTokens": s.maxTokens,
-			"temperature":     0.3,
-		},
-	}
+	// システムインストラクションとユーザープロンプトを設定
+	systemInstruction := genai.NewContentFromText(s.systemPrompt, genai.RoleUser)
+	userContent := genai.NewContentFromText(userPrompt, genai.RoleUser)
 
-	jsonData, err := json.Marshal(reqBody)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal request: %w", err)
+	// GenerateContent設定
+	temperature := float32(0.3)
+	config := &genai.GenerateContentConfig{
+		MaxOutputTokens: s.maxTokens,
+		Temperature:     &temperature,
+		SystemInstruction: systemInstruction,
 	}
 
 	// Gemini API呼び出し
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s",
-		s.model, s.apiKey)
-
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	resp, err := s.client.Models.GenerateContent(ctx, s.model, []*genai.Content{userContent}, config)
 	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
+		return "", fmt.Errorf("failed to generate content: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("failed to call Gemini API: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Gemini API returned status %d", resp.StatusCode)
+	// レスポンスから要約を抽出
+	if len(resp.Candidates) == 0 {
+		return "", fmt.Errorf("no candidates returned from Gemini API")
 	}
 
-	// レスポンスのパース
-	var apiResp struct {
-		Candidates []struct {
-			Content struct {
-				Parts []struct {
-					Text string `json:"text"`
-				} `json:"parts"`
-			} `json:"content"`
-		} `json:"candidates"`
+	candidate := resp.Candidates[0]
+	if candidate.Content == nil || len(candidate.Content.Parts) == 0 {
+		return "", fmt.Errorf("no content in candidate response")
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		return "", fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	if len(apiResp.Candidates) == 0 || len(apiResp.Candidates[0].Content.Parts) == 0 {
-		return "", fmt.Errorf("no summary returned from Gemini API")
-	}
-
-	summary := apiResp.Candidates[0].Content.Parts[0].Text
+	summary := candidate.Content.Parts[0].Text
 
 	return summary, nil
 }
