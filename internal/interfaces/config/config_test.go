@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"testing"
+	"time"
 )
 
 func TestLoadRSSURLs_Numbered(t *testing.T) {
@@ -146,5 +147,72 @@ func TestLoadConfig_NoRSSURLs(t *testing.T) {
 	_, err := LoadConfig()
 	if err == nil {
 		t.Error("expected error when no RSS URLs are configured, got nil")
+	}
+}
+
+func TestConfig_GetCacheCleanupInterval(t *testing.T) {
+	tests := []struct {
+		name     string
+		interval int
+		expected time.Duration
+	}{
+		{"default 24 hours", 24, 24 * time.Hour},
+		{"custom 48 hours", 48, 48 * time.Hour},
+		{"1 hour", 1, 1 * time.Hour},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{CacheCleanupInterval: tt.interval}
+			result := cfg.GetCacheCleanupInterval()
+			if result != tt.expected {
+				t.Errorf("expected %v, got %v", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestConfig_GetCacheRetentionPeriod(t *testing.T) {
+	tests := []struct {
+		name     string
+		days     int
+		expected time.Duration
+	}{
+		{"default 7 days", 7, 7 * 24 * time.Hour},
+		{"custom 14 days", 14, 14 * 24 * time.Hour},
+		{"1 day", 1, 24 * time.Hour},
+		{"30 days", 30, 30 * 24 * time.Hour},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{CacheRetentionDays: tt.days}
+			result := cfg.GetCacheRetentionPeriod()
+			if result != tt.expected {
+				t.Errorf("expected %v, got %v", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestConfig_IsPersistentCache(t *testing.T) {
+	tests := []struct {
+		name     string
+		dbPath   string
+		expected bool
+	}{
+		{"empty path", "", false},
+		{"with path", "./cache.db", true},
+		{"absolute path", "/var/data/cache.db", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{CacheDBPath: tt.dbPath}
+			result := cfg.IsPersistentCache()
+			if result != tt.expected {
+				t.Errorf("expected %v, got %v", tt.expected, result)
+			}
+		})
 	}
 }
