@@ -73,8 +73,8 @@ func TestMemoryCache_MultipleRSSURLs(t *testing.T) {
 	time1 := time.Now()
 	time2 := time.Now().Add(1 * time.Hour)
 
-	cache.SaveLatestPublishedTime(ctx, url1, time1)
-	cache.SaveLatestPublishedTime(ctx, url2, time2)
+	_ = cache.SaveLatestPublishedTime(ctx, url1, time1)
+	_ = cache.SaveLatestPublishedTime(ctx, url2, time2)
 
 	got1, _ := cache.GetLatestPublishedTime(ctx, url1)
 	got2, _ := cache.GetLatestPublishedTime(ctx, url2)
