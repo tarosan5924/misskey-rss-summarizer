@@ -2,11 +2,21 @@ package storage
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 )
+
+func closeSQLiteCache(t *testing.T, cache interface{}) {
+	t.Helper()
+	if closer, ok := cache.(io.Closer); ok {
+		if err := closer.Close(); err != nil {
+			t.Errorf("failed to close cache: %v", err)
+		}
+	}
+}
 
 func TestSQLiteCache_LatestPublishedTime(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "test.db")
@@ -14,7 +24,7 @@ func TestSQLiteCache_LatestPublishedTime(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create cache: %v", err)
 	}
-	defer cache.(*sqliteCache).Close()
+	defer closeSQLiteCache(t, cache)
 
 	ctx := context.Background()
 	rssURL := "https://example.tld/rss"
@@ -48,7 +58,7 @@ func TestSQLiteCache_ProcessedGUIDs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create cache: %v", err)
 	}
-	defer cache.(*sqliteCache).Close()
+	defer closeSQLiteCache(t, cache)
 
 	ctx := context.Background()
 	guid := "test-guid-123"
@@ -81,7 +91,7 @@ func TestSQLiteCache_MultipleRSSURLs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create cache: %v", err)
 	}
-	defer cache.(*sqliteCache).Close()
+	defer closeSQLiteCache(t, cache)
 
 	ctx := context.Background()
 	url1 := "https://example.tld/rss1"
@@ -162,7 +172,7 @@ func TestSQLiteCache_UpdateLatestPublishedTime(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create cache: %v", err)
 	}
-	defer cache.(*sqliteCache).Close()
+	defer closeSQLiteCache(t, cache)
 
 	ctx := context.Background()
 	rssURL := "https://example.tld/rss"
@@ -185,7 +195,7 @@ func TestSQLiteCache_DuplicateMarkAsProcessed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create cache: %v", err)
 	}
-	defer cache.(*sqliteCache).Close()
+	defer closeSQLiteCache(t, cache)
 
 	ctx := context.Background()
 	guid := "duplicate-guid"
@@ -220,7 +230,7 @@ func TestSQLiteCache_FileCreation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create cache: %v", err)
 	}
-	defer cache.(*sqliteCache).Close()
+	defer closeSQLiteCache(t, cache)
 
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
 		t.Error("database file was not created")
@@ -233,7 +243,7 @@ func TestSQLiteCache_CleanupOldGUIDs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create cache: %v", err)
 	}
-	defer cache.(*sqliteCache).Close()
+	defer closeSQLiteCache(t, cache)
 
 	ctx := context.Background()
 	sqlCache := cache.(*sqliteCache)
@@ -288,7 +298,7 @@ func TestSQLiteCache_CleanupOldGUIDs_NoOldRecords(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create cache: %v", err)
 	}
-	defer cache.(*sqliteCache).Close()
+	defer closeSQLiteCache(t, cache)
 
 	ctx := context.Background()
 	sqlCache := cache.(*sqliteCache)

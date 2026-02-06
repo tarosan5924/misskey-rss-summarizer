@@ -48,14 +48,16 @@ func main() {
 			log.Fatal("Failed to initialize SQLite cache:", cacheErr)
 		}
 		cacheRepo = sqliteCache
-		cacheCloser = sqliteCache.(io.Closer)
+		if closer, ok := sqliteCache.(io.Closer); ok {
+			cacheCloser = closer
+		}
 		log.Printf("Using persistent cache: %s", cfg.CacheDBPath)
 	} else {
 		cacheRepo = storage.NewMemoryCacheRepository()
 		log.Println("Using in-memory cache (data will not persist across restarts)")
 		if !cfg.FirstRunLatestOnly {
-			log.Println("Warning: FIRST_RUN_LATEST_ONLY=false requires CACHE_DB_PATH to be set")
-			log.Println("Forcing FIRST_RUN_LATEST_ONLY=true for safety")
+			log.Printf("Warning: FIRST_RUN_LATEST_ONLY=%v requires CACHE_DB_PATH to be set when using in-memory cache", cfg.FirstRunLatestOnly)
+			log.Printf("Overriding FIRST_RUN_LATEST_ONLY from %v to true for safety", cfg.FirstRunLatestOnly)
 			firstRunLatestOnly = true
 		}
 	}
@@ -117,7 +119,9 @@ func main() {
 		case <-ctx.Done():
 			log.Println("Shutting down...")
 			if cacheCloser != nil {
-				cacheCloser.Close()
+				if err := cacheCloser.Close(); err != nil {
+					log.Printf("Failed to close cache: %v", err)
+				}
 			}
 			return
 		case <-ticker.C:

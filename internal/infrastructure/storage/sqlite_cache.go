@@ -22,9 +22,21 @@ func NewSQLiteCacheRepository(dbPath string) (repository.CacheRepository, error)
 		return nil, fmt.Errorf("failed to open sqlite database: %w", err)
 	}
 
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
+	db.SetConnMaxLifetime(time.Hour)
+
+	if err := db.Ping(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to connect to sqlite database: %w", err)
+	}
+
 	cache := &sqliteCache{db: db}
 
-	if err := cache.initSchema(); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := cache.initSchema(ctx); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("failed to initialize schema: %w", err)
 	}
@@ -32,7 +44,7 @@ func NewSQLiteCacheRepository(dbPath string) (repository.CacheRepository, error)
 	return cache, nil
 }
 
-func (c *sqliteCache) initSchema() error {
+func (c *sqliteCache) initSchema(ctx context.Context) error {
 	queries := []string{
 		`CREATE TABLE IF NOT EXISTS latest_published (
 			rss_url TEXT PRIMARY KEY,
@@ -46,7 +58,7 @@ func (c *sqliteCache) initSchema() error {
 	}
 
 	for _, query := range queries {
-		if _, err := c.db.Exec(query); err != nil {
+		if _, err := c.db.ExecContext(ctx, query); err != nil {
 			return fmt.Errorf("failed to execute schema query: %w", err)
 		}
 	}
