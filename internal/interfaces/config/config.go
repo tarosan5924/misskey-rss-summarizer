@@ -29,6 +29,10 @@ type Config struct {
 	LLMMaxTokens         int    `envconfig:"LLM_MAX_TOKENS" default:"0"`
 	LLMTimeout           int    `envconfig:"LLM_TIMEOUT" default:"30"`
 	LLMSystemInstruction string `envconfig:"LLM_SYSTEM_INSTRUCTION"`
+
+	CacheDBPath string `envconfig:"CACHE_DB_PATH" default:""`
+
+	FirstRunLatestOnly bool `envconfig:"FIRST_RUN_LATEST_ONLY" default:"true"`
 }
 
 func LoadConfig() (*Config, error) {
@@ -45,7 +49,7 @@ func LoadConfig() (*Config, error) {
 	}
 
 	if len(cfg.RSSURL) == 0 {
-		return nil, fmt.Errorf("no RSS URLs configured. Please set RSS_URL or RSS_URL_1, RSS_URL_2, etc.")
+		return nil, fmt.Errorf("no RSS URLs configured, please set RSS_URL or RSS_URL_1, RSS_URL_2, etc")
 	}
 
 	return &cfg, nil
@@ -109,4 +113,8 @@ func (c *Config) GetLLMConfig() LLMConfig {
 		Timeout:           time.Duration(c.LLMTimeout) * time.Second,
 		SystemInstruction: c.LLMSystemInstruction,
 	}
+}
+
+func (c *Config) IsPersistentCache() bool {
+	return c.CacheDBPath != ""
 }

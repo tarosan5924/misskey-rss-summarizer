@@ -12,10 +12,19 @@ import (
 )
 
 type RSSFeedService struct {
-	feedRepo       repository.FeedRepository
-	noteRepo       repository.NoteRepository
-	cacheRepo      repository.CacheRepository
-	summarizerRepo repository.SummarizerRepository
+	feedRepo           repository.FeedRepository
+	noteRepo           repository.NoteRepository
+	cacheRepo          repository.CacheRepository
+	summarizerRepo     repository.SummarizerRepository
+	firstRunLatestOnly bool
+}
+
+type RSSFeedServiceOption func(*RSSFeedService)
+
+func WithFirstRunLatestOnly(enabled bool) RSSFeedServiceOption {
+	return func(s *RSSFeedService) {
+		s.firstRunLatestOnly = enabled
+	}
 }
 
 func NewRSSFeedService(
@@ -23,13 +32,19 @@ func NewRSSFeedService(
 	noteRepo repository.NoteRepository,
 	cacheRepo repository.CacheRepository,
 	summarizerRepo repository.SummarizerRepository,
+	opts ...RSSFeedServiceOption,
 ) *RSSFeedService {
-	return &RSSFeedService{
-		feedRepo:       feedRepo,
-		noteRepo:       noteRepo,
-		cacheRepo:      cacheRepo,
-		summarizerRepo: summarizerRepo,
+	s := &RSSFeedService{
+		feedRepo:           feedRepo,
+		noteRepo:           noteRepo,
+		cacheRepo:          cacheRepo,
+		summarizerRepo:     summarizerRepo,
+		firstRunLatestOnly: true,
 	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
 }
 
 func (s *RSSFeedService) ProcessFeed(ctx context.Context, rssURL string) error {
@@ -49,49 +64,86 @@ func (s *RSSFeedService) ProcessFeed(ctx context.Context, rssURL string) error {
 	}
 
 	isFirstRun := latestPublished.IsZero()
+	newEntries := s.filterNewEntries(ctx, entries, latestPublished, isFirstRun)
 
-	var newEntries []*entity.FeedEntry
-
-	if isFirstRun {
-		var mostRecent *entity.FeedEntry
-		for _, entry := range entries {
-			if mostRecent == nil || entry.Published.After(mostRecent.Published) {
-				mostRecent = entry
-			}
-		}
-		if mostRecent != nil {
-			newEntries = append(newEntries, mostRecent)
-		}
-	} else {
-		for _, entry := range entries {
-			processed, err := s.cacheRepo.IsProcessed(ctx, entry.GUID)
-			if err != nil {
-				log.Printf("Failed to check if processed [GUID: %s]: %v", entry.GUID, err)
-				continue
-			}
-			if processed {
-				continue
-			}
-
-			if entry.IsNewerThan(latestPublished) {
-				newEntries = append(newEntries, entry)
-			}
-		}
+	if len(newEntries) == 0 {
+		return nil
 	}
 
 	sortEntriesByPublishedAsc(newEntries)
+	latestTime := s.postEntries(ctx, newEntries)
 
-	var latestTime time.Time
-	for _, entry := range newEntries {
-		var summary string
-
-		if s.summarizerRepo != nil && s.summarizerRepo.IsEnabled() {
-			var err error
-			summary, err = s.summarizerRepo.Summarize(ctx, entry.Link, entry.Title)
-			if err != nil {
-				log.Printf("Failed to summarize [%s]: %v", entry.Title, err)
-			}
+	if !latestTime.IsZero() {
+		if err := s.cacheRepo.SaveLatestPublishedTime(ctx, rssURL, latestTime); err != nil {
+			return fmt.Errorf("failed to save latest published time: %w", err)
 		}
+	}
+
+	log.Printf("Processed %d new entries from RSS URL [%s]", len(newEntries), rssURL)
+	return nil
+}
+
+func (s *RSSFeedService) filterNewEntries(
+	ctx context.Context,
+	entries []*entity.FeedEntry,
+	latestPublished time.Time,
+	isFirstRun bool,
+) []*entity.FeedEntry {
+	if isFirstRun && s.firstRunLatestOnly {
+		return s.findMostRecentEntry(entries)
+	}
+
+	var newEntries []*entity.FeedEntry
+	for _, entry := range entries {
+		if s.shouldSkipEntry(ctx, entry, latestPublished, isFirstRun) {
+			continue
+		}
+		newEntries = append(newEntries, entry)
+	}
+	return newEntries
+}
+
+func (s *RSSFeedService) findMostRecentEntry(entries []*entity.FeedEntry) []*entity.FeedEntry {
+	if len(entries) == 0 {
+		return nil
+	}
+
+	mostRecent := entries[0]
+	for _, entry := range entries[1:] {
+		if entry.Published.After(mostRecent.Published) {
+			mostRecent = entry
+		}
+	}
+	return []*entity.FeedEntry{mostRecent}
+}
+
+func (s *RSSFeedService) shouldSkipEntry(
+	ctx context.Context,
+	entry *entity.FeedEntry,
+	latestPublished time.Time,
+	isFirstRun bool,
+) bool {
+	processed, err := s.cacheRepo.IsProcessed(ctx, entry.GUID)
+	if err != nil {
+		log.Printf("Failed to check if processed [GUID: %s]: %v", entry.GUID, err)
+		return true
+	}
+	if processed {
+		return true
+	}
+
+	if !isFirstRun && !entry.IsNewerThan(latestPublished) {
+		return true
+	}
+
+	return false
+}
+
+func (s *RSSFeedService) postEntries(ctx context.Context, entries []*entity.FeedEntry) time.Time {
+	var latestTime time.Time
+
+	for _, entry := range entries {
+		summary := s.summarizeEntry(ctx, entry)
 
 		note := entity.NewNoteFromFeedWithSummary(entry, summary, entity.VisibilityHome)
 		if err := s.noteRepo.Post(ctx, note); err != nil {
@@ -110,17 +162,20 @@ func (s *RSSFeedService) ProcessFeed(ctx context.Context, rssURL string) error {
 		}
 	}
 
-	if !latestTime.IsZero() {
-		if err := s.cacheRepo.SaveLatestPublishedTime(ctx, rssURL, latestTime); err != nil {
-			return fmt.Errorf("failed to save latest published time: %w", err)
-		}
+	return latestTime
+}
+
+func (s *RSSFeedService) summarizeEntry(ctx context.Context, entry *entity.FeedEntry) string {
+	if s.summarizerRepo == nil || !s.summarizerRepo.IsEnabled() {
+		return ""
 	}
 
-	if len(newEntries) > 0 {
-		log.Printf("Processed %d new entries from RSS URL [%s]", len(newEntries), rssURL)
+	summary, err := s.summarizerRepo.Summarize(ctx, entry.Link, entry.Title)
+	if err != nil {
+		log.Printf("Failed to summarize [%s]: %v", entry.Title, err)
+		return ""
 	}
-
-	return nil
+	return summary
 }
 
 func (s *RSSFeedService) ProcessAllFeeds(ctx context.Context, rssURLs []string) error {
