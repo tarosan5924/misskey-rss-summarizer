@@ -75,6 +75,7 @@ func main() {
 		Provider:          llmCfg.Provider,
 		APIKey:            llmCfg.APIKey,
 		Model:             llmCfg.Model,
+		Region:            llmCfg.Region,
 		MaxTokens:         llmCfg.MaxTokens,
 		Timeout:           llmCfg.Timeout,
 		SystemInstruction: llmCfg.SystemInstruction,

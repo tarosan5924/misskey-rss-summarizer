@@ -59,6 +59,28 @@ func TestNewSummarizerRepository_Noop(t *testing.T) {
 	}
 }
 
+func TestNewSummarizerRepository_Bedrock(t *testing.T) {
+	cfg := Config{
+		Provider: "bedrock",
+		APIKey:   "test-token",
+		Model:    "anthropic.claude-3-haiku-20240307-v1:0",
+		Region:   "us-east-1",
+	}
+
+	repo, err := NewSummarizerRepository(context.TODO(), cfg)
+	if err != nil {
+		t.Fatalf("failed to create bedrock summarizer: %v", err)
+	}
+
+	if !repo.IsEnabled() {
+		t.Error("expected bedrock summarizer to be enabled")
+	}
+
+	if _, ok := repo.(*bedrockSummarizer); !ok {
+		t.Error("expected bedrockSummarizer type")
+	}
+}
+
 func TestNewSummarizerRepository_UnknownProvider(t *testing.T) {
 	cfg := Config{
 		Provider: "unknown-provider",
@@ -84,6 +106,32 @@ func TestNewSummarizerRepository_GeminiNoAPIKey(t *testing.T) {
 	_, err := NewSummarizerRepository(context.TODO(), cfg)
 	if err == nil {
 		t.Error("expected error when gemini API key is empty, got nil")
+	}
+}
+
+func TestNewSummarizerRepository_BedrockNoModel(t *testing.T) {
+	cfg := Config{
+		Provider: "bedrock",
+		APIKey:   "test-token",
+		Region:   "us-east-1",
+	}
+
+	_, err := NewSummarizerRepository(context.TODO(), cfg)
+	if err == nil {
+		t.Error("expected error when bedrock model ID is empty, got nil")
+	}
+}
+
+func TestNewSummarizerRepository_BedrockNoToken(t *testing.T) {
+	cfg := Config{
+		Provider: "bedrock",
+		Model:    "anthropic.claude-3-haiku-20240307-v1:0",
+		Region:   "us-east-1",
+	}
+
+	_, err := NewSummarizerRepository(context.TODO(), cfg)
+	if err == nil {
+		t.Error("expected error when bedrock bearer token is empty, got nil")
 	}
 }
 

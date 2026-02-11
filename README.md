@@ -26,6 +26,7 @@ The bot will automatically fetch article content from URLs and generate summarie
 
 **Supported Providers:**
 - `gemini` - Google Gemini API
+- `bedrock` - Amazon Bedrock (uses a Bedrock bearer token via `LLM_API_KEY`)
 
 **Important:** Check the LLM provider's documentation for currently available models, as model names may change over time.
 
