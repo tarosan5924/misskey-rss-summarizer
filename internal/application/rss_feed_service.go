@@ -9,6 +9,7 @@ import (
 
 	"misskeyRSSbot/internal/domain/entity"
 	"misskeyRSSbot/internal/domain/repository"
+	"misskeyRSSbot/internal/interfaces/config"
 )
 
 type RSSFeedService struct {
@@ -47,11 +48,13 @@ func NewRSSFeedService(
 	return s
 }
 
-func (s *RSSFeedService) ProcessFeed(ctx context.Context, rssURL string) error {
-	entries, err := s.feedRepo.Fetch(ctx, rssURL)
-	if err != nil {
-		return fmt.Errorf("failed to fetch RSS feed [%s]: %w", rssURL, err)
-	}
+func (s *RSSFeedService) ProcessFeed(ctx context.Context, rssURL string, useFilter bool) error {
+    entries, err := s.feedRepo.Fetch(ctx, rssURL, useFilter)
+    if err != nil {
+        return fmt.Errorf("failed to fetch RSS feed [%s]: %w", rssURL, err)
+    }
+	log.Printf("Processing %d entries from %s", len(entries), rssURL)
+
 
 	if len(entries) == 0 {
 		log.Printf("No entries found in RSS URL: %s", rssURL)
@@ -178,14 +181,13 @@ func (s *RSSFeedService) summarizeEntry(ctx context.Context, entry *entity.FeedE
 	return summary
 }
 
-func (s *RSSFeedService) ProcessAllFeeds(ctx context.Context, rssURLs []string) error {
-	for _, url := range rssURLs {
-		if err := s.ProcessFeed(ctx, url); err != nil {
-			log.Printf("RSS processing error [%s]: %v", url, err)
-			continue
-		}
-	}
-	return nil
+func (s *RSSFeedService) ProcessAllFeeds(ctx context.Context, rssSettings []config.RSSSettings) error {
+    for _, setting := range rssSettings {
+        if err := s.ProcessFeed(ctx, setting.URL, setting.Filter); err != nil {
+            log.Printf("Error processing feed %s: %v", setting.URL, err)
+        }
+    }
+    return nil
 }
 
 func sortEntriesByPublishedAsc(entries []*entity.FeedEntry) {

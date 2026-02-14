@@ -7,5 +7,5 @@ import (
 )
 
 type FeedRepository interface {
-	Fetch(ctx context.Context, url string) ([]*entity.FeedEntry, error)
+	Fetch(ctx context.Context, url string, useFilter bool) ([]*entity.FeedEntry, error)
 }

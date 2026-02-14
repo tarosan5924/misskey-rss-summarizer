@@ -9,11 +9,14 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 )
-
+type RSSSettings struct {
+    URL    string
+    Filter bool
+}
 type Config struct {
 	MisskeyHost string   `envconfig:"MISSKEY_HOST" required:"true"`
 	AuthToken   string   `envconfig:"AUTH_TOKEN" required:"true"`
-	RSSURL      []string `envconfig:"RSS_URL"`
+	RSSURL      []RSSSettings
 
 	FetchInterval int `envconfig:"FETCH_INTERVAL" default:"30"`
 
@@ -47,35 +50,38 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 
-	rssURLs := loadRSSURLs()
-	if len(rssURLs) > 0 {
-		cfg.RSSURL = rssURLs
-	}
+	rssSettings := loadRSSURLs()
+    if len(rssSettings) > 0 {
+        cfg.RSSURL = rssSettings
+    }
 
-	if len(cfg.RSSURL) == 0 {
-		return nil, fmt.Errorf("no RSS URLs configured, please set RSS_URL or RSS_URL_1, RSS_URL_2, etc")
-	}
+    if len(cfg.RSSURL) == 0 {
+        return nil, fmt.Errorf("no RSS URLs configured")
+    }
 
 	return &cfg, nil
 }
 
-func loadRSSURLs() []string {
-	var urls []string
+func loadRSSURLs() []RSSSettings {
+    var settings []RSSSettings
 
-	for i := 1; ; i++ {
-		key := fmt.Sprintf("RSS_URL_%d", i)
-		url := os.Getenv(key)
-		if url == "" {
-			break
-		}
-		urls = append(urls, url)
-	}
-
-	if len(urls) > 0 {
-		return urls
-	}
-
-	return nil
+    for i := 1; ; i++ {
+        key := fmt.Sprintf("RSS_URL_%d", i)
+        url := os.Getenv(key)
+        if url == "" {
+            break
+        }
+        
+        // フィルター設定を読み込む
+        filterKey := fmt.Sprintf("RSS_URL_%d_FILTER", i)
+        filter := os.Getenv(filterKey) == "true"
+        
+        settings = append(settings, RSSSettings{
+            URL:    url,
+            Filter: filter,
+        })
+    }
+    return settings
 }
 
 func GetNumberedEnvInt(prefix string, index int, defaultValue int) int {
