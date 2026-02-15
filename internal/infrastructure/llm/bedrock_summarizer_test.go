@@ -63,9 +63,6 @@ func TestBedrockSummarizerBuildConverseInput(t *testing.T) {
 	if input.InferenceConfig.Temperature == nil || *input.InferenceConfig.Temperature != float32(0.3) {
 		t.Fatalf("expected temperature 0.3, got %v", input.InferenceConfig.Temperature)
 	}
-	if input.InferenceConfig.TopP == nil || *input.InferenceConfig.TopP != float32(0.9) {
-		t.Fatalf("expected topP 0.9, got %v", input.InferenceConfig.TopP)
-	}
 
 	if s.timeout != customTimeout {
 		t.Fatalf("expected timeout %v, got %v", customTimeout, s.timeout)

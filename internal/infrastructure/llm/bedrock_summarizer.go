@@ -108,7 +108,6 @@ func (s *bedrockSummarizer) IsEnabled() bool {
 
 func (s *bedrockSummarizer) buildConverseInput(prompt string) *bedrockruntime.ConverseInput {
 	temperature := float32(0.3)
-	topP := float32(0.9)
 
 	return &bedrockruntime.ConverseInput{
 		ModelId: aws.String(s.modelID),
@@ -126,7 +125,6 @@ func (s *bedrockSummarizer) buildConverseInput(prompt string) *bedrockruntime.Co
 		InferenceConfig: &types.InferenceConfiguration{
 			MaxTokens:   aws.Int32(s.maxTokens),
 			Temperature: aws.Float32(temperature),
-			TopP:        aws.Float32(topP),
 		},
 	}
 }
@@ -163,4 +161,3 @@ func (s *bedrockSummarizer) parseResponse(resp *bedrockruntime.ConverseOutput) (
 	}
 	return summary, nil
 }
-
