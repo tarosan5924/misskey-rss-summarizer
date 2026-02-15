@@ -26,6 +26,7 @@ type Config struct {
 	LLMProvider          string `envconfig:"LLM_PROVIDER" default:""`
 	LLMAPIKey            string `envconfig:"LLM_API_KEY"`
 	LLMModel             string `envconfig:"LLM_MODEL"`
+	LLMRegion            string `envconfig:"LLM_REGION" default:""`
 	LLMMaxTokens         int    `envconfig:"LLM_MAX_TOKENS" default:"0"`
 	LLMTimeout           int    `envconfig:"LLM_TIMEOUT" default:"30"`
 	LLMSystemInstruction string `envconfig:"LLM_SYSTEM_INSTRUCTION"`
@@ -103,6 +104,7 @@ type LLMConfig struct {
 	Provider          string
 	APIKey            string
 	Model             string
+	Region            string
 	MaxTokens         int
 	Timeout           time.Duration
 	SystemInstruction string
@@ -113,6 +115,7 @@ func (c *Config) GetLLMConfig() LLMConfig {
 		Provider:          c.LLMProvider,
 		APIKey:            c.LLMAPIKey,
 		Model:             c.LLMModel,
+		Region:            c.LLMRegion,
 		MaxTokens:         c.LLMMaxTokens,
 		Timeout:           time.Duration(c.LLMTimeout) * time.Second,
 		SystemInstruction: c.LLMSystemInstruction,

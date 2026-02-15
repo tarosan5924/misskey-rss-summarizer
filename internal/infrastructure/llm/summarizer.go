@@ -12,6 +12,7 @@ type Config struct {
 	Provider          string
 	APIKey            string
 	Model             string
+	Region            string
 	MaxTokens         int
 	SystemInstruction string
 	Timeout           time.Duration
@@ -27,6 +28,8 @@ func NewSummarizerRepository(ctx context.Context, cfg Config) (repository.Summar
 	switch cfg.Provider {
 	case "gemini":
 		return newGeminiSummarizer(ctx, cfg)
+	case "bedrock":
+		return newBedrockSummarizer(ctx, cfg)
 	case "noop", "":
 		return newNoopSummarizer(), nil
 	default:
