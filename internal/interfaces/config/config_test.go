@@ -59,6 +59,49 @@ func TestLoadRSSURLs_NoNumbered(t *testing.T) {
 	}
 }
 
+func TestLoadRSSURLs_LegacyFallback(t *testing.T) {
+	os.Setenv("RSS_URL", "https://example.tld/rss1,https://example.tld/rss2,https://example.tld/rss3")
+	defer os.Unsetenv("RSS_URL")
+
+	settings := loadRSSURLs()
+
+	if len(settings) != 3 {
+		t.Fatalf("expected 3 settings from legacy format, got %d", len(settings))
+	}
+
+	expected := []string{
+		"https://example.tld/rss1",
+		"https://example.tld/rss2",
+		"https://example.tld/rss3",
+	}
+
+	for i, s := range settings {
+		if s.URL != expected[i] {
+			t.Errorf("URL[%d]: expected %s, got %s", i, expected[i], s.URL)
+		}
+		if len(s.Keywords) != 0 {
+			t.Errorf("Keywords[%d]: expected empty in legacy format, got %v", i, s.Keywords)
+		}
+	}
+}
+
+func TestLoadRSSURLs_NumberedTakesPrecedenceOverLegacy(t *testing.T) {
+	os.Setenv("RSS_URL", "https://example.tld/legacy")
+	os.Setenv("RSS_URL_1", "https://example.tld/numbered")
+	defer os.Unsetenv("RSS_URL")
+	defer os.Unsetenv("RSS_URL_1")
+
+	settings := loadRSSURLs()
+
+	if len(settings) != 1 {
+		t.Fatalf("expected 1 setting, got %d", len(settings))
+	}
+
+	if settings[0].URL != "https://example.tld/numbered" {
+		t.Errorf("expected numbered format to take precedence, got %s", settings[0].URL)
+	}
+}
+
 func TestLoadRSSURLs_WithKeywords(t *testing.T) {
 	os.Setenv("RSS_URL_1", "https://example.tld/rss1")
 	os.Setenv("SEARCH_KEYWORDS_1", "マユリカ,エバース")

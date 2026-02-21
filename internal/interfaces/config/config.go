@@ -92,6 +92,18 @@ func loadRSSURLs() []RSSSettings {
 			Keywords: keywords,
 		})
 	}
+
+	// 番号付き形式が見つからない場合、旧形式（RSS_URL=url1,url2,url3）にフォールバック
+	if len(settings) == 0 {
+		if legacy := os.Getenv("RSS_URL"); legacy != "" {
+			for _, u := range strings.Split(legacy, ",") {
+				if trimmed := strings.TrimSpace(u); trimmed != "" {
+					settings = append(settings, RSSSettings{URL: trimmed})
+				}
+			}
+		}
+	}
+
 	return settings
 }
 
