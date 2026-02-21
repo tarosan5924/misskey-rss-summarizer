@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strings"
 	"time"
 
 	"misskeyRSSbot/internal/domain/entity"
 	"misskeyRSSbot/internal/domain/repository"
+	"misskeyRSSbot/internal/interfaces/config"
 )
 
 type RSSFeedService struct {
@@ -47,18 +49,21 @@ func NewRSSFeedService(
 	return s
 }
 
-func (s *RSSFeedService) ProcessFeed(ctx context.Context, rssURL string) error {
-	entries, err := s.feedRepo.Fetch(ctx, rssURL)
+func (s *RSSFeedService) ProcessFeed(ctx context.Context, setting config.RSSSettings) error {
+	entries, err := s.feedRepo.Fetch(ctx, setting.URL)
 	if err != nil {
-		return fmt.Errorf("failed to fetch RSS feed [%s]: %w", rssURL, err)
+		return fmt.Errorf("failed to fetch RSS feed [%s]: %w", setting.URL, err)
 	}
 
+	entries = filterByKeywords(entries, setting.Keywords)
+	log.Printf("Processing %d entries from %s", len(entries), setting.URL)
+
 	if len(entries) == 0 {
-		log.Printf("No entries found in RSS URL: %s", rssURL)
+		log.Printf("No entries found in RSS URL: %s", setting.URL)
 		return nil
 	}
 
-	latestPublished, err := s.cacheRepo.GetLatestPublishedTime(ctx, rssURL)
+	latestPublished, err := s.cacheRepo.GetLatestPublishedTime(ctx, setting.URL)
 	if err != nil {
 		return fmt.Errorf("failed to get latest published time: %w", err)
 	}
@@ -74,12 +79,12 @@ func (s *RSSFeedService) ProcessFeed(ctx context.Context, rssURL string) error {
 	latestTime := s.postEntries(ctx, newEntries)
 
 	if !latestTime.IsZero() {
-		if err := s.cacheRepo.SaveLatestPublishedTime(ctx, rssURL, latestTime); err != nil {
+		if err := s.cacheRepo.SaveLatestPublishedTime(ctx, setting.URL, latestTime); err != nil {
 			return fmt.Errorf("failed to save latest published time: %w", err)
 		}
 	}
 
-	log.Printf("Processed %d new entries from RSS URL [%s]", len(newEntries), rssURL)
+	log.Printf("Processed %d new entries from RSS URL [%s]", len(newEntries), setting.URL)
 	return nil
 }
 
@@ -178,14 +183,30 @@ func (s *RSSFeedService) summarizeEntry(ctx context.Context, entry *entity.FeedE
 	return summary
 }
 
-func (s *RSSFeedService) ProcessAllFeeds(ctx context.Context, rssURLs []string) error {
-	for _, url := range rssURLs {
-		if err := s.ProcessFeed(ctx, url); err != nil {
-			log.Printf("RSS processing error [%s]: %v", url, err)
-			continue
+func (s *RSSFeedService) ProcessAllFeeds(ctx context.Context, rssSettings []config.RSSSettings) error {
+	for _, setting := range rssSettings {
+		if err := s.ProcessFeed(ctx, setting); err != nil {
+			log.Printf("Error processing feed %s: %v", setting.URL, err)
 		}
 	}
 	return nil
+}
+
+func filterByKeywords(entries []*entity.FeedEntry, keywords []string) []*entity.FeedEntry {
+	if len(keywords) == 0 {
+		return entries
+	}
+
+	var filtered []*entity.FeedEntry
+	for _, entry := range entries {
+		for _, k := range keywords {
+			if strings.Contains(entry.Title, k) || strings.Contains(entry.Description, k) {
+				filtered = append(filtered, entry)
+				break
+			}
+		}
+	}
+	return filtered
 }
 
 func sortEntriesByPublishedAsc(entries []*entity.FeedEntry) {

@@ -27,6 +27,7 @@ func (r *feedRepository) Fetch(ctx context.Context, url string) ([]*entity.FeedE
 	}
 
 	entries := make([]*entity.FeedEntry, 0, len(feed.Items))
+
 	for _, item := range feed.Items {
 		if item.PublishedParsed == nil {
 			continue
@@ -44,6 +45,7 @@ func (r *feedRepository) Fetch(ctx context.Context, url string) ([]*entity.FeedE
 			*item.PublishedParsed,
 			guid,
 		)
+
 		entries = append(entries, entry)
 	}
 

@@ -186,3 +186,4 @@ func TestFeedRepository_Fetch_ContextCancellation(t *testing.T) {
 		t.Error("expected error for cancelled context, got nil")
 	}
 }
+

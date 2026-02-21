@@ -3,17 +3,22 @@ package config
 import (
 	"fmt"
 	"os"
-	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 )
 
+type RSSSettings struct {
+	URL      string
+	Keywords []string
+}
+
 type Config struct {
-	MisskeyHost string   `envconfig:"MISSKEY_HOST" required:"true"`
-	AuthToken   string   `envconfig:"AUTH_TOKEN" required:"true"`
-	RSSURL      []string `envconfig:"RSS_URL"`
+	MisskeyHost string `envconfig:"MISSKEY_HOST" required:"true"`
+	AuthToken   string `envconfig:"AUTH_TOKEN" required:"true"`
+	RSSURL      []RSSSettings
 
 	FetchInterval int `envconfig:"FETCH_INTERVAL" default:"30"`
 
@@ -48,20 +53,20 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 
-	rssURLs := loadRSSURLs()
-	if len(rssURLs) > 0 {
-		cfg.RSSURL = rssURLs
+	rssSettings := loadRSSURLs()
+	if len(rssSettings) > 0 {
+		cfg.RSSURL = rssSettings
 	}
 
 	if len(cfg.RSSURL) == 0 {
-		return nil, fmt.Errorf("no RSS URLs configured, please set RSS_URL or RSS_URL_1, RSS_URL_2, etc")
+		return nil, fmt.Errorf("no RSS URLs configured")
 	}
 
 	return &cfg, nil
 }
 
-func loadRSSURLs() []string {
-	var urls []string
+func loadRSSURLs() []RSSSettings {
+	var settings []RSSSettings
 
 	for i := 1; ; i++ {
 		key := fmt.Sprintf("RSS_URL_%d", i)
@@ -69,27 +74,38 @@ func loadRSSURLs() []string {
 		if url == "" {
 			break
 		}
-		urls = append(urls, url)
+
+		// RSS_URL_1 に対応する RSS_URL_1_FILTER を読み込む
+		keywordsKey := fmt.Sprintf("RSS_URL_%d_FILTER", i)
+		rawKeywords := os.Getenv(keywordsKey)
+		var keywords []string
+		if rawKeywords != "" {
+			for _, k := range strings.Split(rawKeywords, ",") {
+				trimmed := strings.TrimSpace(k)
+				if trimmed != "" {
+					keywords = append(keywords, trimmed)
+				}
+			}
+		}
+
+		settings = append(settings, RSSSettings{
+			URL:      url,
+			Keywords: keywords,
+		})
 	}
 
-	if len(urls) > 0 {
-		return urls
+	// 番号付き形式が見つからない場合、旧形式（RSS_URL=url1,url2,url3）にフォールバック
+	if len(settings) == 0 {
+		if legacy := os.Getenv("RSS_URL"); legacy != "" {
+			for _, u := range strings.Split(legacy, ",") {
+				if trimmed := strings.TrimSpace(u); trimmed != "" {
+					settings = append(settings, RSSSettings{URL: trimmed})
+				}
+			}
+		}
 	}
 
-	return nil
-}
-
-func GetNumberedEnvInt(prefix string, index int, defaultValue int) int {
-	key := fmt.Sprintf("%s_%d", prefix, index)
-	val := os.Getenv(key)
-	if val == "" {
-		return defaultValue
-	}
-	intVal, err := strconv.Atoi(val)
-	if err != nil {
-		return defaultValue
-	}
-	return intVal
+	return settings
 }
 
 func (c *Config) GetFetchInterval() time.Duration {

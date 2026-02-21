@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"misskeyRSSbot/internal/domain/entity"
+	"misskeyRSSbot/internal/interfaces/config"
 )
 
 type mockFeedRepository struct {
@@ -103,7 +104,7 @@ func TestRSSFeedService_ProcessFeed_NewEntries(t *testing.T) {
 
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil)
 
-	err := service.ProcessFeed(ctx, "https://example.tld/rss")
+	err := service.ProcessFeed(ctx, config.RSSSettings{URL: "https://example.tld/rss"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -138,7 +139,7 @@ func TestRSSFeedService_ProcessFeed_SkipProcessedEntries(t *testing.T) {
 
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil)
 
-	err := service.ProcessFeed(ctx, "https://example.tld/rss")
+	err := service.ProcessFeed(ctx, config.RSSSettings{URL: "https://example.tld/rss"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -157,7 +158,7 @@ func TestRSSFeedService_ProcessFeed_FetchError(t *testing.T) {
 
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil)
 
-	err := service.ProcessFeed(ctx, "https://example.tld/rss")
+	err := service.ProcessFeed(ctx, config.RSSSettings{URL: "https://example.tld/rss"})
 	if err == nil {
 		t.Error("expected error, got nil")
 	}
@@ -179,17 +180,43 @@ func TestRSSFeedService_ProcessAllFeeds(t *testing.T) {
 
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil)
 
-	urls := []string{
-		"https://example.tld/rss",
+	settings := []config.RSSSettings{
+		{URL: "https://example.tld/rss"},
 	}
 
-	err := service.ProcessAllFeeds(ctx, urls)
+	err := service.ProcessAllFeeds(ctx, settings)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	if len(noteRepo.posted) != 1 {
 		t.Errorf("expected 1 note posted on first run (most recent only), got %d", len(noteRepo.posted))
+	}
+}
+
+func TestRSSFeedService_ProcessAllFeeds_WithFilter(t *testing.T) {
+	ctx := context.Background()
+
+	now := time.Now()
+
+	feedRepo := &mockFeedRepository{
+		entries: []*entity.FeedEntry{
+			entity.NewFeedEntry("Article 1", "https://example.tld/1", "Desc 1", now, "guid-1"),
+		},
+	}
+	noteRepo := &mockNoteRepository{}
+	cacheRepo := newMockCacheRepository()
+
+	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil)
+
+	settings := []config.RSSSettings{
+		{URL: "https://example.tld/rss1", Keywords: []string{"テスト"}},
+		{URL: "https://example.tld/rss2"},
+	}
+
+	err := service.ProcessAllFeeds(ctx, settings)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
@@ -211,7 +238,7 @@ func TestRSSFeedService_ProcessFeed_WithSummarizer(t *testing.T) {
 
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, summarizerRepo)
 
-	err := service.ProcessFeed(ctx, "https://example.tld/rss")
+	err := service.ProcessFeed(ctx, config.RSSSettings{URL: "https://example.tld/rss"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -252,7 +279,7 @@ func TestRSSFeedService_ProcessFeed_SummarizerDisabled(t *testing.T) {
 
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, summarizerRepo)
 
-	err := service.ProcessFeed(ctx, "https://example.tld/rss")
+	err := service.ProcessFeed(ctx, config.RSSSettings{URL: "https://example.tld/rss"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -289,7 +316,7 @@ func TestRSSFeedService_ProcessFeed_SummarizerError(t *testing.T) {
 
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, summarizerRepo)
 
-	err := service.ProcessFeed(ctx, "https://example.tld/rss")
+	err := service.ProcessFeed(ctx, config.RSSSettings{URL: "https://example.tld/rss"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -321,7 +348,7 @@ func TestRSSFeedService_ProcessFeed_FirstRunLatestOnlyEnabled(t *testing.T) {
 
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil, WithFirstRunLatestOnly(true))
 
-	err := service.ProcessFeed(ctx, "https://example.tld/rss")
+	err := service.ProcessFeed(ctx, config.RSSSettings{URL: "https://example.tld/rss"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -351,7 +378,7 @@ func TestRSSFeedService_ProcessFeed_FirstRunLatestOnlyDisabled(t *testing.T) {
 
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil, WithFirstRunLatestOnly(false))
 
-	err := service.ProcessFeed(ctx, "https://example.tld/rss")
+	err := service.ProcessFeed(ctx, config.RSSSettings{URL: "https://example.tld/rss"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -378,12 +405,86 @@ func TestRSSFeedService_ProcessFeed_FirstRunLatestOnlyDisabled_SkipProcessed(t *
 
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil, WithFirstRunLatestOnly(false))
 
-	err := service.ProcessFeed(ctx, "https://example.tld/rss")
+	err := service.ProcessFeed(ctx, config.RSSSettings{URL: "https://example.tld/rss"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	if len(noteRepo.posted) != 2 {
 		t.Errorf("expected 2 notes posted (skipping processed guid-1), got %d", len(noteRepo.posted))
+	}
+}
+
+func TestFilterByKeywords_MatchesTitle(t *testing.T) {
+	now := time.Now()
+	entries := []*entity.FeedEntry{
+		entity.NewFeedEntry("マユリカの新番組", "https://example.tld/1", "お笑いの話題", now, "guid-1"),
+		entity.NewFeedEntry("関係ない記事", "https://example.tld/2", "関係ない内容", now, "guid-2"),
+	}
+
+	filtered := filterByKeywords(entries, []string{"マユリカ", "エバース"})
+
+	if len(filtered) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(filtered))
+	}
+	if filtered[0].Title != "マユリカの新番組" {
+		t.Errorf("expected 'マユリカの新番組', got '%s'", filtered[0].Title)
+	}
+}
+
+func TestFilterByKeywords_MatchesDescription(t *testing.T) {
+	now := time.Now()
+	entries := []*entity.FeedEntry{
+		entity.NewFeedEntry("お笑い番組まとめ", "https://example.tld/1", "エバースが出演する番組", now, "guid-1"),
+		entity.NewFeedEntry("別の記事", "https://example.tld/2", "全く関係ない内容", now, "guid-2"),
+	}
+
+	filtered := filterByKeywords(entries, []string{"マユリカ", "エバース"})
+
+	if len(filtered) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(filtered))
+	}
+	if filtered[0].GUID != "guid-1" {
+		t.Errorf("expected guid-1, got '%s'", filtered[0].GUID)
+	}
+}
+
+func TestFilterByKeywords_NoKeywordsReturnsAll(t *testing.T) {
+	now := time.Now()
+	entries := []*entity.FeedEntry{
+		entity.NewFeedEntry("記事1", "https://example.tld/1", "内容1", now, "guid-1"),
+		entity.NewFeedEntry("記事2", "https://example.tld/2", "内容2", now, "guid-2"),
+	}
+
+	filtered := filterByKeywords(entries, nil)
+
+	if len(filtered) != 2 {
+		t.Errorf("expected 2 entries when keywords is nil, got %d", len(filtered))
+	}
+}
+
+func TestFilterByKeywords_EmptyKeywordsReturnsAll(t *testing.T) {
+	now := time.Now()
+	entries := []*entity.FeedEntry{
+		entity.NewFeedEntry("記事1", "https://example.tld/1", "内容1", now, "guid-1"),
+	}
+
+	filtered := filterByKeywords(entries, []string{})
+
+	if len(filtered) != 1 {
+		t.Errorf("expected 1 entry when keywords is empty, got %d", len(filtered))
+	}
+}
+
+func TestFilterByKeywords_NoMatch(t *testing.T) {
+	now := time.Now()
+	entries := []*entity.FeedEntry{
+		entity.NewFeedEntry("関係ない記事", "https://example.tld/1", "関係ない内容", now, "guid-1"),
+	}
+
+	filtered := filterByKeywords(entries, []string{"マユリカ", "エバース"})
+
+	if len(filtered) != 0 {
+		t.Errorf("expected 0 entries, got %d", len(filtered))
 	}
 }
