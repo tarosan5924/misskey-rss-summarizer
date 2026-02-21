@@ -48,19 +48,19 @@ func NewRSSFeedService(
 	return s
 }
 
-func (s *RSSFeedService) ProcessFeed(ctx context.Context, rssURL string, keywords []string) error {
-	entries, err := s.feedRepo.Fetch(ctx, rssURL, keywords)
+func (s *RSSFeedService) ProcessFeed(ctx context.Context, setting config.RSSSettings) error {
+	entries, err := s.feedRepo.Fetch(ctx, setting.URL, setting.Keywords)
 	if err != nil {
-		return fmt.Errorf("failed to fetch RSS feed [%s]: %w", rssURL, err)
+		return fmt.Errorf("failed to fetch RSS feed [%s]: %w", setting.URL, err)
 	}
-	log.Printf("Processing %d entries from %s", len(entries), rssURL)
+	log.Printf("Processing %d entries from %s", len(entries), setting.URL)
 
 	if len(entries) == 0 {
-		log.Printf("No entries found in RSS URL: %s", rssURL)
+		log.Printf("No entries found in RSS URL: %s", setting.URL)
 		return nil
 	}
 
-	latestPublished, err := s.cacheRepo.GetLatestPublishedTime(ctx, rssURL)
+	latestPublished, err := s.cacheRepo.GetLatestPublishedTime(ctx, setting.URL)
 	if err != nil {
 		return fmt.Errorf("failed to get latest published time: %w", err)
 	}
@@ -76,12 +76,12 @@ func (s *RSSFeedService) ProcessFeed(ctx context.Context, rssURL string, keyword
 	latestTime := s.postEntries(ctx, newEntries)
 
 	if !latestTime.IsZero() {
-		if err := s.cacheRepo.SaveLatestPublishedTime(ctx, rssURL, latestTime); err != nil {
+		if err := s.cacheRepo.SaveLatestPublishedTime(ctx, setting.URL, latestTime); err != nil {
 			return fmt.Errorf("failed to save latest published time: %w", err)
 		}
 	}
 
-	log.Printf("Processed %d new entries from RSS URL [%s]", len(newEntries), rssURL)
+	log.Printf("Processed %d new entries from RSS URL [%s]", len(newEntries), setting.URL)
 	return nil
 }
 
@@ -182,7 +182,7 @@ func (s *RSSFeedService) summarizeEntry(ctx context.Context, entry *entity.FeedE
 
 func (s *RSSFeedService) ProcessAllFeeds(ctx context.Context, rssSettings []config.RSSSettings) error {
 	for _, setting := range rssSettings {
-		if err := s.ProcessFeed(ctx, setting.URL, setting.Keywords); err != nil {
+		if err := s.ProcessFeed(ctx, setting); err != nil {
 			log.Printf("Error processing feed %s: %v", setting.URL, err)
 		}
 	}
