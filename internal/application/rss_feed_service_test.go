@@ -16,7 +16,7 @@ type mockFeedRepository struct {
 	err     error
 }
 
-func (m *mockFeedRepository) Fetch(ctx context.Context, url string, useFilter bool) ([]*entity.FeedEntry, error) {
+func (m *mockFeedRepository) Fetch(ctx context.Context, url string, keywords []string) ([]*entity.FeedEntry, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -104,7 +104,7 @@ func TestRSSFeedService_ProcessFeed_NewEntries(t *testing.T) {
 
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil)
 
-	err := service.ProcessFeed(ctx, "https://example.tld/rss", false)
+	err := service.ProcessFeed(ctx, "https://example.tld/rss", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -139,7 +139,7 @@ func TestRSSFeedService_ProcessFeed_SkipProcessedEntries(t *testing.T) {
 
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil)
 
-	err := service.ProcessFeed(ctx, "https://example.tld/rss", false)
+	err := service.ProcessFeed(ctx, "https://example.tld/rss", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -158,7 +158,7 @@ func TestRSSFeedService_ProcessFeed_FetchError(t *testing.T) {
 
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil)
 
-	err := service.ProcessFeed(ctx, "https://example.tld/rss", false)
+	err := service.ProcessFeed(ctx, "https://example.tld/rss", nil)
 	if err == nil {
 		t.Error("expected error, got nil")
 	}
@@ -181,7 +181,7 @@ func TestRSSFeedService_ProcessAllFeeds(t *testing.T) {
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil)
 
 	settings := []config.RSSSettings{
-		{URL: "https://example.tld/rss", Filter: false},
+		{URL: "https://example.tld/rss"},
 	}
 
 	err := service.ProcessAllFeeds(ctx, settings)
@@ -210,8 +210,8 @@ func TestRSSFeedService_ProcessAllFeeds_WithFilter(t *testing.T) {
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil)
 
 	settings := []config.RSSSettings{
-		{URL: "https://example.tld/rss1", Filter: true},
-		{URL: "https://example.tld/rss2", Filter: false},
+		{URL: "https://example.tld/rss1", Keywords: []string{"テスト"}},
+		{URL: "https://example.tld/rss2"},
 	}
 
 	err := service.ProcessAllFeeds(ctx, settings)
@@ -238,7 +238,7 @@ func TestRSSFeedService_ProcessFeed_WithSummarizer(t *testing.T) {
 
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, summarizerRepo)
 
-	err := service.ProcessFeed(ctx, "https://example.tld/rss", false)
+	err := service.ProcessFeed(ctx, "https://example.tld/rss", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -279,7 +279,7 @@ func TestRSSFeedService_ProcessFeed_SummarizerDisabled(t *testing.T) {
 
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, summarizerRepo)
 
-	err := service.ProcessFeed(ctx, "https://example.tld/rss", false)
+	err := service.ProcessFeed(ctx, "https://example.tld/rss", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -316,7 +316,7 @@ func TestRSSFeedService_ProcessFeed_SummarizerError(t *testing.T) {
 
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, summarizerRepo)
 
-	err := service.ProcessFeed(ctx, "https://example.tld/rss", false)
+	err := service.ProcessFeed(ctx, "https://example.tld/rss", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -348,7 +348,7 @@ func TestRSSFeedService_ProcessFeed_FirstRunLatestOnlyEnabled(t *testing.T) {
 
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil, WithFirstRunLatestOnly(true))
 
-	err := service.ProcessFeed(ctx, "https://example.tld/rss", false)
+	err := service.ProcessFeed(ctx, "https://example.tld/rss", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -378,7 +378,7 @@ func TestRSSFeedService_ProcessFeed_FirstRunLatestOnlyDisabled(t *testing.T) {
 
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil, WithFirstRunLatestOnly(false))
 
-	err := service.ProcessFeed(ctx, "https://example.tld/rss", false)
+	err := service.ProcessFeed(ctx, "https://example.tld/rss", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -405,7 +405,7 @@ func TestRSSFeedService_ProcessFeed_FirstRunLatestOnlyDisabled_SkipProcessed(t *
 
 	service := NewRSSFeedService(feedRepo, noteRepo, cacheRepo, nil, WithFirstRunLatestOnly(false))
 
-	err := service.ProcessFeed(ctx, "https://example.tld/rss", false)
+	err := service.ProcessFeed(ctx, "https://example.tld/rss", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

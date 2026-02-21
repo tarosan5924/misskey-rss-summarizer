@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 )
@@ -41,7 +40,7 @@ func TestFeedRepository_Fetch_Success(t *testing.T) {
 	repo := NewFeedRepository()
 	ctx := context.Background()
 
-	entries, err := repo.Fetch(ctx, server.URL, false)
+	entries, err := repo.Fetch(ctx, server.URL, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -85,7 +84,7 @@ func TestFeedRepository_Fetch_EmptyGUID(t *testing.T) {
 	repo := NewFeedRepository()
 	ctx := context.Background()
 
-	entries, err := repo.Fetch(ctx, server.URL, false)
+	entries, err := repo.Fetch(ctx, server.URL, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -128,7 +127,7 @@ func TestFeedRepository_Fetch_SkipNoPubDate(t *testing.T) {
 	repo := NewFeedRepository()
 	ctx := context.Background()
 
-	entries, err := repo.Fetch(ctx, server.URL, false)
+	entries, err := repo.Fetch(ctx, server.URL, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -146,7 +145,7 @@ func TestFeedRepository_Fetch_InvalidURL(t *testing.T) {
 	repo := NewFeedRepository()
 	ctx := context.Background()
 
-	_, err := repo.Fetch(ctx, "http://invalid-url-that-does-not-exist-12345.com/feed", false)
+	_, err := repo.Fetch(ctx, "http://invalid-url-that-does-not-exist-12345.com/feed", nil)
 	if err == nil {
 		t.Error("expected error for invalid URL, got nil")
 	}
@@ -163,7 +162,7 @@ func TestFeedRepository_Fetch_InvalidXML(t *testing.T) {
 	repo := NewFeedRepository()
 	ctx := context.Background()
 
-	_, err := repo.Fetch(ctx, server.URL, false)
+	_, err := repo.Fetch(ctx, server.URL, nil)
 	if err == nil {
 		t.Error("expected error for invalid XML, got nil")
 	}
@@ -182,7 +181,7 @@ func TestFeedRepository_Fetch_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := repo.Fetch(ctx, server.URL, false)
+	_, err := repo.Fetch(ctx, server.URL, nil)
 	if err == nil {
 		t.Error("expected error for cancelled context, got nil")
 	}
@@ -217,13 +216,10 @@ func TestFeedRepository_Fetch_FilterMatchesTitle(t *testing.T) {
 	}))
 	defer server.Close()
 
-	os.Setenv("SEARCH_KEYWORDS", "マユリカ,エバース")
-	defer os.Unsetenv("SEARCH_KEYWORDS")
-
 	repo := NewFeedRepository()
 	ctx := context.Background()
 
-	entries, err := repo.Fetch(ctx, server.URL, true)
+	entries, err := repo.Fetch(ctx, server.URL, []string{"マユリカ", "エバース"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -266,13 +262,10 @@ func TestFeedRepository_Fetch_FilterMatchesDescription(t *testing.T) {
 	}))
 	defer server.Close()
 
-	os.Setenv("SEARCH_KEYWORDS", "マユリカ,エバース")
-	defer os.Unsetenv("SEARCH_KEYWORDS")
-
 	repo := NewFeedRepository()
 	ctx := context.Background()
 
-	entries, err := repo.Fetch(ctx, server.URL, true)
+	entries, err := repo.Fetch(ctx, server.URL, []string{"マユリカ", "エバース"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -286,7 +279,7 @@ func TestFeedRepository_Fetch_FilterMatchesDescription(t *testing.T) {
 	}
 }
 
-func TestFeedRepository_Fetch_FilterDisabledReturnsAll(t *testing.T) {
+func TestFeedRepository_Fetch_NoKeywordsReturnsAll(t *testing.T) {
 	rssXML := `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
 	<channel>
@@ -315,19 +308,17 @@ func TestFeedRepository_Fetch_FilterDisabledReturnsAll(t *testing.T) {
 	}))
 	defer server.Close()
 
-	os.Setenv("SEARCH_KEYWORDS", "マユリカ")
-	defer os.Unsetenv("SEARCH_KEYWORDS")
-
 	repo := NewFeedRepository()
 	ctx := context.Background()
 
-	entries, err := repo.Fetch(ctx, server.URL, false)
+	// Keywords が nil の場合、全件返す
+	entries, err := repo.Fetch(ctx, server.URL, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	if len(entries) != 2 {
-		t.Fatalf("expected 2 entries when filter is disabled, got %d", len(entries))
+		t.Fatalf("expected 2 entries when keywords is nil, got %d", len(entries))
 	}
 }
 
@@ -353,13 +344,10 @@ func TestFeedRepository_Fetch_FilterNoMatch(t *testing.T) {
 	}))
 	defer server.Close()
 
-	os.Setenv("SEARCH_KEYWORDS", "マユリカ,エバース")
-	defer os.Unsetenv("SEARCH_KEYWORDS")
-
 	repo := NewFeedRepository()
 	ctx := context.Background()
 
-	entries, err := repo.Fetch(ctx, server.URL, true)
+	entries, err := repo.Fetch(ctx, server.URL, []string{"マユリカ", "エバース"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -369,7 +357,7 @@ func TestFeedRepository_Fetch_FilterNoMatch(t *testing.T) {
 	}
 }
 
-func TestFeedRepository_Fetch_FilterEmptyKeywords(t *testing.T) {
+func TestFeedRepository_Fetch_EmptyKeywordsReturnsAll(t *testing.T) {
 	rssXML := `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
 	<channel>
@@ -391,17 +379,16 @@ func TestFeedRepository_Fetch_FilterEmptyKeywords(t *testing.T) {
 	}))
 	defer server.Close()
 
-	os.Unsetenv("SEARCH_KEYWORDS")
-
 	repo := NewFeedRepository()
 	ctx := context.Background()
 
-	entries, err := repo.Fetch(ctx, server.URL, true)
+	// Keywords が空スライスの場合もフィルターなし
+	entries, err := repo.Fetch(ctx, server.URL, []string{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if len(entries) != 0 {
-		t.Errorf("expected 0 entries when SEARCH_KEYWORDS is empty with filter enabled, got %d", len(entries))
+	if len(entries) != 1 {
+		t.Errorf("expected 1 entry when keywords is empty slice, got %d", len(entries))
 	}
 }

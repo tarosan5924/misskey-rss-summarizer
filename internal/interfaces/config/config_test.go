@@ -30,8 +30,8 @@ func TestLoadRSSURLs_Numbered(t *testing.T) {
 		if s.URL != expected[i] {
 			t.Errorf("URL[%d]: expected %s, got %s", i, expected[i], s.URL)
 		}
-		if s.Filter != false {
-			t.Errorf("Filter[%d]: expected false when not set, got %v", i, s.Filter)
+		if len(s.Keywords) != 0 {
+			t.Errorf("Keywords[%d]: expected empty when not set, got %v", i, s.Keywords)
 		}
 	}
 }
@@ -59,17 +59,17 @@ func TestLoadRSSURLs_NoNumbered(t *testing.T) {
 	}
 }
 
-func TestLoadRSSURLs_WithFilter(t *testing.T) {
+func TestLoadRSSURLs_WithKeywords(t *testing.T) {
 	os.Setenv("RSS_URL_1", "https://example.tld/rss1")
-	os.Setenv("RSS_URL_1_FILTER", "true")
+	os.Setenv("SEARCH_KEYWORDS_1", "マユリカ,エバース")
 	os.Setenv("RSS_URL_2", "https://example.tld/rss2")
-	os.Setenv("RSS_URL_2_FILTER", "false")
+	os.Setenv("SEARCH_KEYWORDS_2", "テスト")
 	os.Setenv("RSS_URL_3", "https://example.tld/rss3")
-	// RSS_URL_3_FILTER は設定しない
+	// SEARCH_KEYWORDS_3 は設定しない
 	defer os.Unsetenv("RSS_URL_1")
-	defer os.Unsetenv("RSS_URL_1_FILTER")
+	defer os.Unsetenv("SEARCH_KEYWORDS_1")
 	defer os.Unsetenv("RSS_URL_2")
-	defer os.Unsetenv("RSS_URL_2_FILTER")
+	defer os.Unsetenv("SEARCH_KEYWORDS_2")
 	defer os.Unsetenv("RSS_URL_3")
 
 	settings := loadRSSURLs()
@@ -78,42 +78,43 @@ func TestLoadRSSURLs_WithFilter(t *testing.T) {
 		t.Fatalf("expected 3 settings, got %d", len(settings))
 	}
 
-	if settings[0].Filter != true {
-		t.Errorf("expected Filter[0] to be true, got %v", settings[0].Filter)
+	if len(settings[0].Keywords) != 2 {
+		t.Errorf("expected 2 keywords for settings[0], got %d", len(settings[0].Keywords))
 	}
-	if settings[1].Filter != false {
-		t.Errorf("expected Filter[1] to be false, got %v", settings[1].Filter)
+	if settings[0].Keywords[0] != "マユリカ" || settings[0].Keywords[1] != "エバース" {
+		t.Errorf("expected keywords [マユリカ, エバース], got %v", settings[0].Keywords)
 	}
-	if settings[2].Filter != false {
-		t.Errorf("expected Filter[2] to be false when not set, got %v", settings[2].Filter)
+
+	if len(settings[1].Keywords) != 1 || settings[1].Keywords[0] != "テスト" {
+		t.Errorf("expected keywords [テスト], got %v", settings[1].Keywords)
+	}
+
+	if len(settings[2].Keywords) != 0 {
+		t.Errorf("expected empty keywords when not set, got %v", settings[2].Keywords)
 	}
 }
 
-func TestGetNumberedEnvInt(t *testing.T) {
-	os.Setenv("TEST_1", "100")
-	os.Setenv("TEST_2", "invalid")
-	defer os.Unsetenv("TEST_1")
-	defer os.Unsetenv("TEST_2")
+func TestLoadRSSURLs_KeywordsWithSpaces(t *testing.T) {
+	os.Setenv("RSS_URL_1", "https://example.tld/rss1")
+	os.Setenv("SEARCH_KEYWORDS_1", " マユリカ , エバース , ")
+	defer os.Unsetenv("RSS_URL_1")
+	defer os.Unsetenv("SEARCH_KEYWORDS_1")
 
-	tests := []struct {
-		name         string
-		prefix       string
-		index        int
-		defaultValue int
-		expected     int
-	}{
-		{"valid value", "TEST", 1, 50, 100},
-		{"invalid value", "TEST", 2, 50, 50},
-		{"not exists", "TEST", 3, 50, 50},
+	settings := loadRSSURLs()
+
+	if len(settings) != 1 {
+		t.Fatalf("expected 1 setting, got %d", len(settings))
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := GetNumberedEnvInt(tt.prefix, tt.index, tt.defaultValue)
-			if result != tt.expected {
-				t.Errorf("expected %d, got %d", tt.expected, result)
-			}
-		})
+	if len(settings[0].Keywords) != 2 {
+		t.Fatalf("expected 2 keywords (empty strings trimmed), got %d: %v", len(settings[0].Keywords), settings[0].Keywords)
+	}
+
+	if settings[0].Keywords[0] != "マユリカ" {
+		t.Errorf("expected 'マユリカ', got '%s'", settings[0].Keywords[0])
+	}
+	if settings[0].Keywords[1] != "エバース" {
+		t.Errorf("expected 'エバース', got '%s'", settings[0].Keywords[1])
 	}
 }
 
@@ -146,17 +147,17 @@ func TestLoadConfig_NumberedRSSURLs(t *testing.T) {
 	}
 }
 
-func TestLoadConfig_WithFilterSettings(t *testing.T) {
+func TestLoadConfig_WithKeywords(t *testing.T) {
 	os.Setenv("MISSKEY_HOST", "test.example.tld")
 	os.Setenv("AUTH_TOKEN", "test_token")
 	os.Setenv("RSS_URL_1", "https://example.tld/rss1")
-	os.Setenv("RSS_URL_1_FILTER", "true")
+	os.Setenv("SEARCH_KEYWORDS_1", "マユリカ,エバース")
 	os.Setenv("RSS_URL_2", "https://example.tld/rss2")
 
 	defer os.Unsetenv("MISSKEY_HOST")
 	defer os.Unsetenv("AUTH_TOKEN")
 	defer os.Unsetenv("RSS_URL_1")
-	defer os.Unsetenv("RSS_URL_1_FILTER")
+	defer os.Unsetenv("SEARCH_KEYWORDS_1")
 	defer os.Unsetenv("RSS_URL_2")
 
 	cfg, err := LoadConfig()
@@ -171,11 +172,11 @@ func TestLoadConfig_WithFilterSettings(t *testing.T) {
 	if cfg.RSSURL[0].URL != "https://example.tld/rss1" {
 		t.Errorf("expected URL 'https://example.tld/rss1', got '%s'", cfg.RSSURL[0].URL)
 	}
-	if cfg.RSSURL[0].Filter != true {
-		t.Errorf("expected Filter to be true, got %v", cfg.RSSURL[0].Filter)
+	if len(cfg.RSSURL[0].Keywords) != 2 {
+		t.Errorf("expected 2 keywords, got %d", len(cfg.RSSURL[0].Keywords))
 	}
-	if cfg.RSSURL[1].Filter != false {
-		t.Errorf("expected Filter to be false when not set, got %v", cfg.RSSURL[1].Filter)
+	if len(cfg.RSSURL[1].Keywords) != 0 {
+		t.Errorf("expected no keywords when not set, got %v", cfg.RSSURL[1].Keywords)
 	}
 }
 

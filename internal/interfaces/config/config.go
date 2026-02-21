@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
-	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -11,8 +11,8 @@ import (
 )
 
 type RSSSettings struct {
-	URL    string
-	Filter bool
+	URL      string
+	Keywords []string
 }
 
 type Config struct {
@@ -74,29 +74,25 @@ func loadRSSURLs() []RSSSettings {
 			break
 		}
 
-		// フィルター設定を読み込む
-		filterKey := fmt.Sprintf("RSS_URL_%d_FILTER", i)
-		filter := os.Getenv(filterKey) == "true"
+		// RSS_URL_1 に対応する SEARCH_KEYWORDS_1 を読み込む
+		keywordsKey := fmt.Sprintf("SEARCH_KEYWORDS_%d", i)
+		rawKeywords := os.Getenv(keywordsKey)
+		var keywords []string
+		if rawKeywords != "" {
+			for _, k := range strings.Split(rawKeywords, ",") {
+				trimmed := strings.TrimSpace(k)
+				if trimmed != "" {
+					keywords = append(keywords, trimmed)
+				}
+			}
+		}
 
 		settings = append(settings, RSSSettings{
-			URL:    url,
-			Filter: filter,
+			URL:      url,
+			Keywords: keywords,
 		})
 	}
 	return settings
-}
-
-func GetNumberedEnvInt(prefix string, index int, defaultValue int) int {
-	key := fmt.Sprintf("%s_%d", prefix, index)
-	val := os.Getenv(key)
-	if val == "" {
-		return defaultValue
-	}
-	intVal, err := strconv.Atoi(val)
-	if err != nil {
-		return defaultValue
-	}
-	return intVal
 }
 
 func (c *Config) GetFetchInterval() time.Duration {
